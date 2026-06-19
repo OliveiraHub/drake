@@ -106,6 +106,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getAuth,
+      onAuthStateChanged,
       GoogleAuthProvider,
       signInWithPopup,
       signOut
@@ -207,6 +208,18 @@
       } catch (err) {
         console.error(err);
         showMessage("Erro ao entrar: " + err.message, "error");
+        setLoading(false);
+      }
+    });
+
+    // Se já existe uma sessão salva no navegador, pula o botão e entra direto.
+    setLoading(true);
+    showMessage("Verificando sessão...", "info");
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await handleUser(user);
+      } else {
+        showMessage("", "");
         setLoading(false);
       }
     });
