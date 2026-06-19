@@ -329,41 +329,11 @@
   <main>
     <div id="globalMessage"></div>
 
-    <div class="content-card" id="minhaSenhaCard" style="margin-bottom:20px; display:none;">
-      <h3 style="margin-top:0;">Minha senha de acesso</h3>
-      <p id="minhaSenhaInfo" style="color:var(--text-muted); font-size:14px; margin-top:0;"></p>
-      <form class="inline-form" id="formMinhaSenha" style="margin-bottom:0;">
-        <div class="field">
-          <label for="minhaSenhaNova">Nova senha</label>
-          <input type="password" id="minhaSenhaNova" required minlength="6">
-        </div>
-        <button type="submit">Salvar senha</button>
-      </form>
-    </div>
-
-    <div class="content-card" id="trocarSenhaCard" style="margin-bottom:20px; display:none;">
-      <h3 style="margin-top:0;">Trocar senha</h3>
-      <form class="inline-form" id="formTrocarSenha" style="margin-bottom:0;">
-        <div class="field">
-          <label for="senhaAtual">Senha atual</label>
-          <input type="password" id="senhaAtual" required>
-        </div>
-        <div class="field">
-          <label for="senhaNovaTroca">Nova senha</label>
-          <input type="password" id="senhaNovaTroca" required minlength="6">
-        </div>
-        <div class="field">
-          <label for="senhaNovaTrocaConfirmar">Confirmar nova senha</label>
-          <input type="password" id="senhaNovaTrocaConfirmar" required minlength="6">
-        </div>
-        <button type="submit">Trocar senha</button>
-      </form>
-    </div>
-
     <div class="tabs">
       <button class="tab-btn active" data-tab="participantes">Participantes</button>
       <button class="tab-btn" data-tab="jogos">Jogos</button>
       <button class="tab-btn" data-tab="resultados">Resultados</button>
+      <button class="tab-btn" data-tab="conta">Minha Conta</button>
     </div>
 
     <div class="content-card">
@@ -430,6 +400,40 @@
           <tbody id="listaResultados"></tbody>
         </table>
         <div class="empty-msg" id="resultadosEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
+      </div>
+
+      <!-- MINHA CONTA -->
+      <div class="tab-panel" id="panel-conta">
+        <div id="minhaSenhaCard" style="display:none;">
+          <h3 style="margin-top:0;">Minha senha de acesso</h3>
+          <p id="minhaSenhaInfo" style="color:var(--text-muted); font-size:14px;"></p>
+          <form class="inline-form" id="formMinhaSenha">
+            <div class="field">
+              <label for="minhaSenhaNova">Nova senha</label>
+              <input type="password" id="minhaSenhaNova" required minlength="6">
+            </div>
+            <button type="submit">Salvar senha</button>
+          </form>
+        </div>
+
+        <div id="trocarSenhaCard" style="display:none;">
+          <h3 style="margin-top:0;">Trocar senha</h3>
+          <form class="inline-form" id="formTrocarSenha">
+            <div class="field">
+              <label for="senhaAtual">Senha atual</label>
+              <input type="password" id="senhaAtual" required>
+            </div>
+            <div class="field">
+              <label for="senhaNovaTroca">Nova senha</label>
+              <input type="password" id="senhaNovaTroca" required minlength="6">
+            </div>
+            <div class="field">
+              <label for="senhaNovaTrocaConfirmar">Confirmar nova senha</label>
+              <input type="password" id="senhaNovaTrocaConfirmar" required minlength="6">
+            </div>
+            <button type="submit">Trocar senha</button>
+          </form>
+        </div>
       </div>
     </div>
   </main>
