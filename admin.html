@@ -284,7 +284,8 @@
   .save-resultado-btn:hover {
     background: #2adde6;
   }
-  .delete-jogo-btn {
+  .delete-jogo-btn,
+  .delete-participante-btn {
     padding: 6px 14px;
     border: 1px solid #f87171;
     border-radius: 6px;
@@ -294,7 +295,8 @@
     cursor: pointer;
     font-family: inherit;
   }
-  .delete-jogo-btn:hover {
+  .delete-jogo-btn:hover,
+  .delete-participante-btn:hover {
     background: rgba(248,113,113,0.12);
   }
   .empty-msg {
@@ -622,11 +624,38 @@
           <td>${escapeHtml(data.nome)}</td>
           <td>${escapeHtml(data.email)}</td>
           <td>${statusBadge}</td>
-          <td><button type="button" class="edit-participante-btn">Editar</button></td>
+          <td>
+            <button type="button" class="edit-participante-btn">Editar</button>
+            <button type="button" class="delete-participante-btn">Excluir</button>
+          </td>
         `;
 
         tr.querySelector(".edit-participante-btn").addEventListener("click", () => {
           tr.replaceWith(criarLinhaParticipante(docId, data, true));
+        });
+
+        const deleteBtn = tr.querySelector(".delete-participante-btn");
+        deleteBtn.addEventListener("click", async () => {
+          const confirmado = confirm(
+            `Excluir o participante ${data.nome}? Todos os palpites dele também serão excluídos. Essa ação não pode ser desfeita.`
+          );
+          if (!confirmado) return;
+
+          deleteBtn.disabled = true;
+          try {
+            const palpitesRef = collection(db, "palpites");
+            const palpitesQuery = query(palpitesRef, where("userId", "==", docId));
+            const palpitesSnap = await getDocs(palpitesQuery);
+            await Promise.all(palpitesSnap.docs.map((p) => deleteDoc(p.ref)));
+
+            await deleteDoc(doc(db, "users", docId));
+            showGlobalMessage("Participante e palpites relacionados excluídos com sucesso.", "success");
+            loadParticipantes();
+          } catch (err) {
+            console.error(err);
+            showGlobalMessage("Erro ao excluir participante: " + traduzirErroAuth(err), "error");
+            deleteBtn.disabled = false;
+          }
         });
 
         return tr;
