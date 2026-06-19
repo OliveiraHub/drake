@@ -535,10 +535,10 @@
 
     function atualizarPainelMinhaSenha(user) {
       const temSenha = user.providerData.some((p) => p.providerId === "password");
-      minhaSenhaCard.style.display = "block";
-      minhaSenhaInfo.textContent = temSenha
-        ? "Login por senha já está ativo para sua conta."
-        : "Sua conta ainda não tem senha cadastrada. Defina uma para poder entrar com email e senha (o login com Google foi removido).";
+      // Só mostra o painel enquanto a conta ainda não tem senha cadastrada.
+      // Depois de configurada uma vez, não precisa aparecer de novo.
+      minhaSenhaCard.style.display = temSenha ? "none" : "block";
+      minhaSenhaInfo.textContent = "Sua conta ainda não tem senha cadastrada. Defina uma para poder entrar com email e senha (o login com Google foi removido).";
     }
 
     formMinhaSenha.addEventListener("submit", async (e) => {
