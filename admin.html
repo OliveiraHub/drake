@@ -327,6 +327,18 @@
   <main>
     <div id="globalMessage"></div>
 
+    <div class="content-card" id="minhaSenhaCard" style="margin-bottom:20px; display:none;">
+      <h3 style="margin-top:0;">Minha senha de acesso</h3>
+      <p id="minhaSenhaInfo" style="color:var(--text-muted); font-size:14px; margin-top:0;"></p>
+      <form class="inline-form" id="formMinhaSenha" style="margin-bottom:0;">
+        <div class="field">
+          <label for="minhaSenhaNova">Nova senha</label>
+          <input type="password" id="minhaSenhaNova" required minlength="6">
+        </div>
+        <button type="submit">Salvar senha</button>
+      </form>
+    </div>
+
     <div class="tabs">
       <button class="tab-btn active" data-tab="participantes">Participantes</button>
       <button class="tab-btn" data-tab="jogos">Jogos</button>
@@ -344,6 +356,10 @@
           <div class="field">
             <label for="participanteEmail">Email</label>
             <input type="email" id="participanteEmail" required>
+          </div>
+          <div class="field">
+            <label for="participanteSenha">Senha provisória</label>
+            <input type="text" id="participanteSenha" required minlength="6">
           </div>
           <button type="submit">Salvar</button>
         </form>
@@ -398,16 +414,23 @@
   </main>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getAuth,
       onAuthStateChanged,
-      signOut
+      signOut,
+      createUserWithEmailAndPassword,
+      setPersistence,
+      inMemoryPersistence,
+      EmailAuthProvider,
+      linkWithCredential,
+      updatePassword
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore,
       doc,
       getDoc,
+      setDoc,
       collection,
       addDoc,
       getDocs,
@@ -440,7 +463,7 @@
       globalMessage.textContent = text;
       globalMessage.className = type || "";
       if (text) {
-        setTimeout(() => { globalMessage.textContent = ""; globalMessage.className = ""; }, 4000);
+        setTimeout(() => { globalMessage.textContent = ""; globalMessage.className = ""; }, 9000);
       }
     }
 
@@ -448,6 +471,14 @@
       return String(str ?? "").replace(/[&<>"']/g, (c) => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
       }[c]));
+    }
+
+    function traduzirErroAuth(err) {
+      const code = err?.code || "";
+      if (code === "auth/email-already-in-use") return "Já existe uma conta com esse email.";
+      if (code === "auth/invalid-email") return "Email inválido.";
+      if (code === "auth/weak-password") return "Senha muito fraca (mínimo 6 caracteres).";
+      return err.message;
     }
 
     // ---------- Cálculo de pontos ----------
@@ -488,10 +519,54 @@
 
       userInfo.textContent = user.email;
       marcarLinkAtivo();
+      atualizarPainelMinhaSenha(user);
 
       loadParticipantes();
       loadJogos();
       loadResultadosPendentes();
+    });
+
+    // ---------- Minha senha (admin) ----------
+    const minhaSenhaCard = document.getElementById("minhaSenhaCard");
+    const minhaSenhaInfo = document.getElementById("minhaSenhaInfo");
+    const formMinhaSenha = document.getElementById("formMinhaSenha");
+
+    function atualizarPainelMinhaSenha(user) {
+      const temSenha = user.providerData.some((p) => p.providerId === "password");
+      minhaSenhaCard.style.display = "block";
+      minhaSenhaInfo.textContent = temSenha
+        ? "Login por senha já está ativo para sua conta."
+        : "Sua conta ainda não tem senha cadastrada. Defina uma para poder entrar com email e senha (o login com Google foi removido).";
+    }
+
+    formMinhaSenha.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const novaSenha = document.getElementById("minhaSenhaNova").value;
+
+      if (novaSenha.length < 6) {
+        showGlobalMessage("A senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
+
+      const submitBtn = formMinhaSenha.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const temSenha = auth.currentUser.providerData.some((p) => p.providerId === "password");
+        if (temSenha) {
+          await updatePassword(auth.currentUser, novaSenha);
+        } else {
+          const credential = EmailAuthProvider.credential(auth.currentUser.email, novaSenha);
+          await linkWithCredential(auth.currentUser, credential);
+        }
+        formMinhaSenha.reset();
+        showGlobalMessage("Senha salva com sucesso.", "success");
+        atualizarPainelMinhaSenha(auth.currentUser);
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao salvar senha: " + traduzirErroAuth(err), "error");
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
 
     function marcarLinkAtivo() {
@@ -600,25 +675,53 @@
       return tr;
     }
 
+    // Cria a conta no Firebase Auth usando um app secundário (em memória, sem
+    // persistência), para não derrubar a sessão do admin que está logado no app principal.
+    async function criarContaParticipante(email, senha) {
+      const secondaryApp = initializeApp(firebaseConfig, "secundario-" + Date.now());
+      const secondaryAuth = getAuth(secondaryApp);
+      try {
+        await setPersistence(secondaryAuth, inMemoryPersistence);
+        const cred = await createUserWithEmailAndPassword(secondaryAuth, email, senha);
+        const uid = cred.user.uid;
+        await signOut(secondaryAuth);
+        return uid;
+      } finally {
+        await deleteApp(secondaryApp);
+      }
+    }
+
     formParticipante.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = document.getElementById("participanteNome").value.trim();
       const email = document.getElementById("participanteEmail").value.trim().toLowerCase();
+      const senha = document.getElementById("participanteSenha").value;
 
-      if (!nome || !email) return;
+      if (!nome || !email || !senha) return;
+      if (senha.length < 6) {
+        showGlobalMessage("A senha provisória deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
 
+      const submitBtn = formParticipante.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
       try {
-        await addDoc(collection(db, "users"), {
+        const novoUid = await criarContaParticipante(email, senha);
+        await setDoc(doc(db, "users", novoUid), {
           nome,
           email,
-          role: "participante"
+          role: "participante",
+          uid: novoUid,
+          precisaTrocarSenha: true
         });
         formParticipante.reset();
-        showGlobalMessage("Participante cadastrado com sucesso.", "success");
+        showGlobalMessage(`Participante cadastrado. Senha provisória: ${senha} (informe ao participante).`, "success");
         loadParticipantes();
       } catch (err) {
         console.error(err);
-        showGlobalMessage("Erro ao cadastrar participante: " + err.message, "error");
+        showGlobalMessage("Erro ao cadastrar participante: " + traduzirErroAuth(err), "error");
+      } finally {
+        submitBtn.disabled = false;
       }
     });
 

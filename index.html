@@ -42,64 +42,106 @@
     color: #6b7280;
     font-size: 14px;
   }
-  button#loginBtn {
+  .field {
+    text-align: left;
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1f2937;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: #14532d;
+  }
+  button.primary-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #d1d5db;
+    border: none;
     border-radius: 8px;
-    background: #fff;
+    background: #14532d;
     font-size: 15px;
-    font-weight: 500;
-    color: #1f2937;
+    font-weight: 600;
+    color: #fff;
     cursor: pointer;
     transition: background 0.15s ease;
+    margin-top: 4px;
   }
-  button#loginBtn:hover {
-    background: #f3f4f6;
+  button.primary-btn:hover {
+    background: #1a6b3a;
   }
-  button#loginBtn:disabled {
+  button.primary-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
-  button#loginBtn svg {
-    width: 18px;
-    height: 18px;
-  }
-  #message {
+  #message, #trocaSenhaMessage {
     margin-top: 20px;
     font-size: 14px;
     min-height: 18px;
   }
-  #message.error {
+  #message.error, #trocaSenhaMessage.error {
     color: #b91c1c;
   }
-  #message.info {
+  #message.info, #trocaSenhaMessage.info {
     color: #374151;
   }
 </style>
 </head>
 <body>
 
-  <div class="card">
+  <div class="card" id="loginCard">
     <img class="logo" src="logo.png" alt="Drake">
     <h1>Drake</h1>
     <p class="subtitle">Faça login para acessar o bolão</p>
 
-    <button id="loginBtn">
-      <svg viewBox="0 0 48 48">
-        <path fill="#FFC107" d="M43.6 20.5H42V20.5H24v7.9h11.3c-1.6 4.6-6 7.9-11.3 7.9-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.6-5.6C34.5 6.2 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/>
-        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3.1l5.6-5.6C34.5 6.2 29.6 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
-        <path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.8 14.2-5l-6.6-5.4c-2 1.4-4.6 2.4-7.6 2.4-5.3 0-9.7-3.3-11.3-7.9l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/>
-        <path fill="#1976D2" d="M43.6 20.5H42V20.5H24v7.9h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.6 5.4C41.5 36 44 30.5 44 24c0-1.2-.1-2.4-.4-3.5z"/>
-      </svg>
-      Entrar com Google
-    </button>
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="loginSenha">Senha</label>
+        <input type="password" id="loginSenha" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="primary-btn" id="loginBtn">Entrar</button>
+    </form>
 
     <div id="message"></div>
+  </div>
+
+  <div class="card" id="trocaSenhaCard" style="display:none;">
+    <img class="logo" src="logo.png" alt="Drake">
+    <h1>Drake</h1>
+    <p class="subtitle">Este é seu primeiro acesso. Defina uma nova senha para continuar.</p>
+
+    <form id="trocaSenhaForm">
+      <div class="field">
+        <label for="novaSenha">Nova senha</label>
+        <input type="password" id="novaSenha" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="confirmarSenha">Confirmar nova senha</label>
+        <input type="password" id="confirmarSenha" required minlength="6" autocomplete="new-password">
+      </div>
+      <button type="submit" class="primary-btn" id="trocaSenhaBtn">Salvar nova senha e continuar</button>
+    </form>
+
+    <div id="trocaSenhaMessage"></div>
   </div>
 
   <script type="module">
@@ -107,20 +149,15 @@
     import {
       getAuth,
       onAuthStateChanged,
-      GoogleAuthProvider,
-      signInWithPopup,
+      signInWithEmailAndPassword,
+      updatePassword,
       signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
       getFirestore,
       doc,
       getDoc,
-      setDoc,
-      deleteDoc,
-      collection,
-      query,
-      where,
-      getDocs
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -136,91 +173,122 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    const loginCard = document.getElementById("loginCard");
+    const trocaSenhaCard = document.getElementById("trocaSenhaCard");
+    const loginForm = document.getElementById("loginForm");
     const loginBtn = document.getElementById("loginBtn");
     const messageEl = document.getElementById("message");
+    const trocaSenhaForm = document.getElementById("trocaSenhaForm");
+    const trocaSenhaBtn = document.getElementById("trocaSenhaBtn");
+    const trocaSenhaMessage = document.getElementById("trocaSenhaMessage");
 
-    function showMessage(text, type) {
-      messageEl.textContent = text;
-      messageEl.className = type || "";
+    let pendingUserDocRef = null;
+    let pendingRole = null;
+
+    function showMessage(el, text, type) {
+      el.textContent = text;
+      el.className = type || "";
     }
 
-    function setLoading(isLoading) {
-      loginBtn.disabled = isLoading;
+    function setLoading(btn, isLoading) {
+      btn.disabled = isLoading;
+    }
+
+    function redirecionar(role) {
+      if (role === "admin") {
+        window.location.href = "admin.html";
+      } else if (role === "participante") {
+        window.location.href = "participante.html";
+      } else {
+        signOut(auth);
+        showMessage(messageEl, "Acesso não autorizado. Entre em contato com o administrador.", "error");
+        setLoading(loginBtn, false);
+      }
     }
 
     async function handleUser(user) {
-      showMessage("Verificando cadastro...", "info");
+      showMessage(messageEl, "Verificando cadastro...", "info");
       try {
         const userDocRef = doc(db, "users", user.uid);
-        let userDocSnap = await getDoc(userDocRef);
-        let userData;
+        const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
-          userData = userDocSnap.data();
-        } else {
-          // Cadastro antecipado pelo admin (ainda sem uid) — busca por email
-          const usersRef = collection(db, "users");
-          const q = query(usersRef, where("email", "==", user.email));
-          const snapshot = await getDocs(q);
-
-          if (snapshot.empty) {
-            await signOut(auth);
-            showMessage("Acesso não autorizado. Entre em contato com o administrador.", "error");
-            setLoading(false);
-            return;
-          }
-
-          const oldDocSnap = snapshot.docs[0];
-          userData = oldDocSnap.data();
-
-          // Migra o cadastro para o documento com ID = uid, para próximos logins serem diretos
-          await setDoc(userDocRef, { ...userData, uid: user.uid });
-          await deleteDoc(oldDocSnap.ref);
-        }
-
-        console.log("Email do usuário logado:", user.email);
-        console.log("UID do usuário logado:", user.uid);
-        console.log("Dados do usuário:", userData);
-
-        if (userData.role === "admin") {
-          window.location.href = "admin.html";
-        } else if (userData.role === "participante") {
-          window.location.href = "participante.html";
-        } else {
+        if (!userDocSnap.exists()) {
           await signOut(auth);
-          showMessage("Acesso não autorizado. Entre em contato com o administrador.", "error");
-          setLoading(false);
+          showMessage(messageEl, "Acesso não autorizado. Entre em contato com o administrador.", "error");
+          setLoading(loginBtn, false);
+          return;
         }
+
+        const userData = userDocSnap.data();
+
+        if (userData.precisaTrocarSenha) {
+          pendingUserDocRef = userDocRef;
+          pendingRole = userData.role;
+          loginCard.style.display = "none";
+          trocaSenhaCard.style.display = "block";
+          return;
+        }
+
+        redirecionar(userData.role);
       } catch (err) {
         console.error(err);
-        showMessage("Erro ao verificar cadastro: " + err.message, "error");
-        setLoading(false);
+        showMessage(messageEl, "Erro ao verificar cadastro: " + err.message, "error");
+        setLoading(loginBtn, false);
       }
     }
 
-    loginBtn.addEventListener("click", async () => {
-      setLoading(true);
-      showMessage("", "");
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setLoading(loginBtn, true);
+      showMessage(messageEl, "", "");
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const senha = document.getElementById("loginSenha").value;
       try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
+        const result = await signInWithEmailAndPassword(auth, email, senha);
         await handleUser(result.user);
       } catch (err) {
         console.error(err);
-        showMessage("Erro ao entrar: " + err.message, "error");
-        setLoading(false);
+        showMessage(messageEl, "Email ou senha incorretos.", "error");
+        setLoading(loginBtn, false);
       }
     });
 
-    // Se já existe uma sessão salva no navegador, pula o botão e entra direto.
-    setLoading(true);
-    showMessage("Verificando sessão...", "info");
+    trocaSenhaForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const novaSenha = document.getElementById("novaSenha").value;
+      const confirmarSenha = document.getElementById("confirmarSenha").value;
+
+      if (novaSenha.length < 6) {
+        showMessage(trocaSenhaMessage, "A senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
+      if (novaSenha !== confirmarSenha) {
+        showMessage(trocaSenhaMessage, "As senhas não coincidem.", "error");
+        return;
+      }
+
+      setLoading(trocaSenhaBtn, true);
+      showMessage(trocaSenhaMessage, "Salvando nova senha...", "info");
+      try {
+        await updatePassword(auth.currentUser, novaSenha);
+        await updateDoc(pendingUserDocRef, { precisaTrocarSenha: false });
+        redirecionar(pendingRole);
+      } catch (err) {
+        console.error(err);
+        showMessage(trocaSenhaMessage, "Erro ao salvar nova senha: " + err.message, "error");
+        setLoading(trocaSenhaBtn, false);
+      }
+    });
+
+    // Se já existe uma sessão salva no navegador, pula o formulário e entra direto.
+    setLoading(loginBtn, true);
+    showMessage(messageEl, "Verificando sessão...", "info");
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         await handleUser(user);
       } else {
-        showMessage("", "");
-        setLoading(false);
+        showMessage(messageEl, "", "");
+        setLoading(loginBtn, false);
       }
     });
   </script>
