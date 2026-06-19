@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drake - Admin</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080f;
+    --card: #0f0f1e;
+    --cyan: #00c8d4;
+    --gold: #FFD700;
+    --silver: #C0C0C0;
+    --bronze: #CD7F32;
+    --text: #e5e7eb;
+    --text-muted: #8b8b9e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Barlow Condensed", sans-serif;
+  }
+  header {
+    background: linear-gradient(135deg, #2d0b59 0%, #1a0a33 60%, #0c0820 100%);
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    border-bottom: 1px solid rgba(0, 200, 212, 0.25);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-left .logo {
+    height: 52px;
+    width: 52px;
+    object-fit: contain;
+  }
+  .main-nav {
+    display: flex;
+    gap: 16px;
+  }
+  .main-nav a {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .main-nav a:hover {
+    color: var(--cyan);
+  }
+  .main-nav a.active {
+    color: var(--cyan);
+    font-weight: 700;
+  }
+  .user-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .user-area .user-info {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+  button#logoutBtn {
+    padding: 8px 18px;
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cyan);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  button#logoutBtn:hover {
+    background: var(--cyan);
+    color: #08080f;
+  }
+
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  #globalMessage {
+    margin-bottom: 16px;
+    font-size: 14px;
+    min-height: 18px;
+    font-weight: 600;
+  }
+  #globalMessage.error { color: #f87171; }
+  #globalMessage.success { color: #34d399; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .content-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+
+  form.inline-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #15152a;
+    border-radius: 10px;
+  }
+  form.inline-form .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  form.inline-form label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  form.inline-form input {
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    background: #1b1b32;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  form.inline-form button {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--cyan);
+    color: #08080f;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    height: 38px;
+    font-family: inherit;
+  }
+  form.inline-form button:hover {
+    background: #2adde6;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--text);
+    vertical-align: middle;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge.ok { background: rgba(52,211,153,0.15); color: #34d399; }
+  .badge.pending { background: rgba(255,215,0,0.15); color: var(--gold); }
+
+  .edit-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    background: #15152a;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .edit-participante-btn,
+  .save-edit-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--cyan);
+    color: #08080f;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-right: 6px;
+  }
+  .edit-participante-btn:hover,
+  .save-edit-btn:hover { background: #2adde6; }
+  .cancel-edit-btn {
+    padding: 6px 14px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .cancel-edit-btn:hover { background: rgba(255,255,255,0.08); }
+
+  .placar-input {
+    width: 48px;
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    background: #15152a;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .save-resultado-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--cyan);
+    color: #08080f;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .save-resultado-btn:hover {
+    background: #2adde6;
+  }
+  .delete-jogo-btn {
+    padding: 6px 14px;
+    border: 1px solid #f87171;
+    border-radius: 6px;
+    background: transparent;
+    color: #f87171;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .delete-jogo-btn:hover {
+    background: rgba(248,113,113,0.12);
+  }
+  .empty-msg {
+    color: var(--text-muted);
+    font-size: 15px;
+    padding: 16px 0;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <img class="logo" src="logo.png" alt="Drake">
+      <div class="header-titles">
+        <h1>Drake</h1>
+        <nav class="main-nav" id="mainNav">
+          <a href="participante.html">Participante</a>
+          <a href="admin.html" id="navAdminLink">Admin</a>
+        </nav>
+      </div>
+    </div>
+    <div class="user-area">
+      <span class="user-info" id="userInfo"></span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="globalMessage"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="participantes">Participantes</button>
+      <button class="tab-btn" data-tab="jogos">Jogos</button>
+      <button class="tab-btn" data-tab="resultados">Resultados</button>
+    </div>
+
+    <div class="content-card">
+      <!-- PARTICIPANTES -->
+      <div class="tab-panel active" id="panel-participantes">
+        <form class="inline-form" id="formParticipante">
+          <div class="field">
+            <label for="participanteNome">Nome</label>
+            <input type="text" id="participanteNome" required>
+          </div>
+          <div class="field">
+            <label for="participanteEmail">Email</label>
+            <input type="email" id="participanteEmail" required>
+          </div>
+          <button type="submit">Salvar</button>
+        </form>
+
+        <table>
+          <thead>
+            <tr><th>Nome</th><th>Email</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="listaParticipantes"></tbody>
+        </table>
+        <div class="empty-msg" id="participantesEmptyMsg" style="display:none;">Nenhum participante cadastrado ainda.</div>
+      </div>
+
+      <!-- JOGOS -->
+      <div class="tab-panel" id="panel-jogos">
+        <form class="inline-form" id="formJogo">
+          <div class="field">
+            <label for="jogoTimeCasa">Time da casa</label>
+            <input type="text" id="jogoTimeCasa" required>
+          </div>
+          <div class="field">
+            <label for="jogoTimeFora">Time visitante</label>
+            <input type="text" id="jogoTimeFora" required>
+          </div>
+          <div class="field">
+            <label for="jogoDataHora">Data e hora</label>
+            <input type="datetime-local" id="jogoDataHora" required>
+          </div>
+          <button type="submit">Adicionar jogo</button>
+        </form>
+
+        <table>
+          <thead>
+            <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+          </thead>
+          <tbody id="listaJogos"></tbody>
+        </table>
+        <div class="empty-msg" id="jogosEmptyMsg" style="display:none;">Nenhum jogo cadastrado ainda.</div>
+      </div>
+
+      <!-- RESULTADOS -->
+      <div class="tab-panel" id="panel-resultados">
+        <table>
+          <thead>
+            <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+          </thead>
+          <tbody id="listaResultados"></tbody>
+        </table>
+        <div class="empty-msg" id="resultadosEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where,
+      orderBy,
+      updateDoc,
+      deleteDoc,
+      Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDMuZb6L2HjddNtvJQHrqADlTuTHnwJ2M8",
+      authDomain: "bolao-drake.firebaseapp.com",
+      projectId: "bolao-drake",
+      storageBucket: "bolao-drake.firebasestorage.app",
+      messagingSenderId: "832605376091",
+      appId: "1:832605376091:web:d7644b2ba92ab896f1797e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userInfo = document.getElementById("userInfo");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const globalMessage = document.getElementById("globalMessage");
+
+    function showGlobalMessage(text, type) {
+      globalMessage.textContent = text;
+      globalMessage.className = type || "";
+      if (text) {
+        setTimeout(() => { globalMessage.textContent = ""; globalMessage.className = ""; }, 4000);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    // ---------- Cálculo de pontos ----------
+    // Exato = 3 pts | acertou só o resultado (vencedor/empate) = 1 pt | errou = 0 pts
+    function direcaoResultado(casa, fora) {
+      if (casa > fora) return "casa";
+      if (casa < fora) return "fora";
+      return "empate";
+    }
+
+    function calcularPontuacaoPalpite(real, palpite) {
+      const exato = real.casa === palpite.casa && real.fora === palpite.fora;
+      if (exato) {
+        return { pontos: 3, acertoExato: true, acertoResultado: false };
+      }
+      const acertouDirecao = direcaoResultado(real.casa, real.fora) === direcaoResultado(palpite.casa, palpite.fora);
+      if (acertouDirecao) {
+        return { pontos: 1, acertoExato: false, acertoResultado: true };
+      }
+      return { pontos: 0, acertoExato: false, acertoResultado: false };
+    }
+
+    // ---------- Auth guard ----------
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists() || userDocSnap.data().role !== "admin") {
+        await signOut(auth);
+        window.location.href = "index.html";
+        return;
+      }
+
+      userInfo.textContent = user.email;
+      marcarLinkAtivo();
+
+      loadParticipantes();
+      loadJogos();
+      loadResultadosPendentes();
+    });
+
+    function marcarLinkAtivo() {
+      document.querySelectorAll(".main-nav a").forEach((a) => {
+        if (location.pathname.endsWith(a.getAttribute("href"))) {
+          a.classList.add("active");
+        }
+      });
+    }
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    });
+
+    // ---------- Tabs ----------
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // ---------- Participantes ----------
+    const formParticipante = document.getElementById("formParticipante");
+    const listaParticipantes = document.getElementById("listaParticipantes");
+    const participantesEmptyMsg = document.getElementById("participantesEmptyMsg");
+
+    async function loadParticipantes() {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("role", "==", "participante"));
+      const snapshot = await getDocs(q);
+
+      listaParticipantes.innerHTML = "";
+      participantesEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+
+      snapshot.forEach((docSnap) => {
+        const tr = criarLinhaParticipante(docSnap.id, docSnap.data(), false);
+        listaParticipantes.appendChild(tr);
+      });
+    }
+
+    function criarLinhaParticipante(docId, data, editing) {
+      const tr = document.createElement("tr");
+      const statusBadge = data.uid
+        ? '<span class="badge ok">Já logou</span>'
+        : '<span class="badge pending">Aguardando 1º login</span>';
+
+      if (!editing) {
+        tr.innerHTML = `
+          <td>${escapeHtml(data.nome)}</td>
+          <td>${escapeHtml(data.email)}</td>
+          <td>${statusBadge}</td>
+          <td><button type="button" class="edit-participante-btn">Editar</button></td>
+        `;
+
+        tr.querySelector(".edit-participante-btn").addEventListener("click", () => {
+          tr.replaceWith(criarLinhaParticipante(docId, data, true));
+        });
+
+        return tr;
+      }
+
+      tr.innerHTML = `
+        <td><input type="text" class="edit-input" data-campo="nome" value="${escapeHtml(data.nome)}"></td>
+        <td><input type="email" class="edit-input" data-campo="email" value="${escapeHtml(data.email)}"></td>
+        <td>${statusBadge}</td>
+        <td>
+          <button type="button" class="save-edit-btn">Salvar</button>
+          <button type="button" class="cancel-edit-btn">Cancelar</button>
+        </td>
+      `;
+
+      const inputNome = tr.querySelector('[data-campo="nome"]');
+      const inputEmail = tr.querySelector('[data-campo="email"]');
+      const saveBtn = tr.querySelector(".save-edit-btn");
+      const cancelBtn = tr.querySelector(".cancel-edit-btn");
+
+      cancelBtn.addEventListener("click", () => {
+        tr.replaceWith(criarLinhaParticipante(docId, data, false));
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        const nome = inputNome.value.trim();
+        const email = inputEmail.value.trim().toLowerCase();
+
+        if (!nome || !email) {
+          showGlobalMessage("Preencha nome e email.", "error");
+          return;
+        }
+
+        saveBtn.disabled = true;
+        try {
+          await updateDoc(doc(db, "users", docId), { nome, email });
+          showGlobalMessage("Participante atualizado com sucesso.", "success");
+          loadParticipantes();
+        } catch (err) {
+          console.error(err);
+          showGlobalMessage("Erro ao atualizar participante: " + err.message, "error");
+          saveBtn.disabled = false;
+        }
+      });
+
+      return tr;
+    }
+
+    formParticipante.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("participanteNome").value.trim();
+      const email = document.getElementById("participanteEmail").value.trim().toLowerCase();
+
+      if (!nome || !email) return;
+
+      try {
+        await addDoc(collection(db, "users"), {
+          nome,
+          email,
+          role: "participante"
+        });
+        formParticipante.reset();
+        showGlobalMessage("Participante cadastrado com sucesso.", "success");
+        loadParticipantes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao cadastrar participante: " + err.message, "error");
+      }
+    });
+
+    // ---------- Jogos ----------
+    const formJogo = document.getElementById("formJogo");
+    const listaJogos = document.getElementById("listaJogos");
+    const jogosEmptyMsg = document.getElementById("jogosEmptyMsg");
+
+    function formatDataHora(value) {
+      if (!value) return "-";
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      if (isNaN(dt.getTime())) return String(value);
+      return dt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    async function loadJogos() {
+      const jogosRef = collection(db, "jogos");
+      let snapshot;
+      try {
+        snapshot = await getDocs(query(jogosRef, orderBy("dataHora", "asc")));
+      } catch (err) {
+        snapshot = await getDocs(jogosRef);
+      }
+
+      listaJogos.innerHTML = "";
+      jogosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const placar = data.finalizado
+          ? `${data.placarCasa} x ${data.placarFora}`
+          : "Pendente";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(data.timeCasa)}</td>
+          <td>${escapeHtml(data.timeFora)}</td>
+          <td>${formatDataHora(data.dataHora)}</td>
+          <td>${placar}</td>
+          <td><button type="button" class="delete-jogo-btn">Excluir</button></td>
+        `;
+
+        const deleteBtn = tr.querySelector(".delete-jogo-btn");
+        deleteBtn.addEventListener("click", async () => {
+          const confirmado = confirm(
+            `Excluir o jogo ${data.timeCasa} x ${data.timeFora}? Os palpites já feitos para esse jogo também serão excluídos. Essa ação não pode ser desfeita.`
+          );
+          if (!confirmado) return;
+
+          deleteBtn.disabled = true;
+          try {
+            const palpitesRef = collection(db, "palpites");
+            const palpitesQuery = query(palpitesRef, where("gameId", "==", docSnap.id));
+            const palpitesSnap = await getDocs(palpitesQuery);
+            await Promise.all(palpitesSnap.docs.map((p) => deleteDoc(p.ref)));
+
+            await deleteDoc(doc(db, "jogos", docSnap.id));
+            showGlobalMessage("Jogo e palpites relacionados excluídos com sucesso.", "success");
+            loadJogos();
+            loadResultadosPendentes();
+          } catch (err) {
+            console.error(err);
+            showGlobalMessage("Erro ao excluir jogo: " + err.message, "error");
+            deleteBtn.disabled = false;
+          }
+        });
+
+        listaJogos.appendChild(tr);
+      });
+    }
+
+    formJogo.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const timeCasa = document.getElementById("jogoTimeCasa").value.trim();
+      const timeFora = document.getElementById("jogoTimeFora").value.trim();
+      const dataHora = document.getElementById("jogoDataHora").value;
+
+      if (!timeCasa || !timeFora || !dataHora) return;
+
+      const dataHoraDate = new Date(dataHora);
+      if (isNaN(dataHoraDate.getTime())) {
+        showGlobalMessage("Data/hora inválida.", "error");
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, "jogos"), {
+          timeCasa,
+          timeFora,
+          dataHora: Timestamp.fromDate(dataHoraDate),
+          placarCasa: null,
+          placarFora: null,
+          finalizado: false
+        });
+        formJogo.reset();
+        showGlobalMessage("Jogo cadastrado com sucesso.", "success");
+        loadJogos();
+        loadResultadosPendentes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao cadastrar jogo: " + err.message, "error");
+      }
+    });
+
+    // ---------- Resultados ----------
+    const listaResultados = document.getElementById("listaResultados");
+    const resultadosEmptyMsg = document.getElementById("resultadosEmptyMsg");
+
+    async function loadResultadosPendentes() {
+      const jogosRef = collection(db, "jogos");
+      const q = query(jogosRef, where("finalizado", "==", false));
+      const snapshot = await getDocs(q);
+
+      listaResultados.innerHTML = "";
+      resultadosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(data.timeCasa)}</td>
+          <td>${escapeHtml(data.timeFora)}</td>
+          <td>${formatDataHora(data.dataHora)}</td>
+          <td>
+            <input type="number" min="0" class="placar-input" data-casa>
+            x
+            <input type="number" min="0" class="placar-input" data-fora>
+          </td>
+          <td><button type="button" class="save-resultado-btn">Salvar resultado</button></td>
+        `;
+        const btn = tr.querySelector(".save-resultado-btn");
+        const inputCasa = tr.querySelector("[data-casa]");
+        const inputFora = tr.querySelector("[data-fora]");
+
+        btn.addEventListener("click", async () => {
+          const placarCasa = parseInt(inputCasa.value, 10);
+          const placarFora = parseInt(inputFora.value, 10);
+
+          if (isNaN(placarCasa) || isNaN(placarFora)) {
+            showGlobalMessage("Preencha o placar dos dois times.", "error");
+            return;
+          }
+
+          try {
+            await updateDoc(doc(db, "jogos", docSnap.id), {
+              placarCasa,
+              placarFora,
+              finalizado: true
+            });
+
+            // Calcula e grava a pontuação de cada palpite feito para esse jogo
+            const palpitesRef = collection(db, "palpites");
+            const palpitesQuery = query(palpitesRef, where("gameId", "==", docSnap.id));
+            const palpitesSnap = await getDocs(palpitesQuery);
+
+            await Promise.all(palpitesSnap.docs.map((p) => {
+              const palpite = p.data();
+              const resultado = calcularPontuacaoPalpite(
+                { casa: placarCasa, fora: placarFora },
+                { casa: palpite.placarCasa, fora: palpite.placarFora }
+              );
+              return updateDoc(p.ref, resultado);
+            }));
+
+            showGlobalMessage("Resultado salvo e pontos calculados com sucesso.", "success");
+            loadJogos();
+            loadResultadosPendentes();
+          } catch (err) {
+            console.error(err);
+            showGlobalMessage("Erro ao salvar resultado: " + err.message, "error");
+          }
+        });
+
+        listaResultados.appendChild(tr);
+      });
+    }
+  </script>
+
+</body>
+</html>
