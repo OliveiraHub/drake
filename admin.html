@@ -341,6 +341,25 @@
       </form>
     </div>
 
+    <div class="content-card" id="trocarSenhaCard" style="margin-bottom:20px; display:none;">
+      <h3 style="margin-top:0;">Trocar senha</h3>
+      <form class="inline-form" id="formTrocarSenha" style="margin-bottom:0;">
+        <div class="field">
+          <label for="senhaAtual">Senha atual</label>
+          <input type="password" id="senhaAtual" required>
+        </div>
+        <div class="field">
+          <label for="senhaNovaTroca">Nova senha</label>
+          <input type="password" id="senhaNovaTroca" required minlength="6">
+        </div>
+        <div class="field">
+          <label for="senhaNovaTrocaConfirmar">Confirmar nova senha</label>
+          <input type="password" id="senhaNovaTrocaConfirmar" required minlength="6">
+        </div>
+        <button type="submit">Trocar senha</button>
+      </form>
+    </div>
+
     <div class="tabs">
       <button class="tab-btn active" data-tab="participantes">Participantes</button>
       <button class="tab-btn" data-tab="jogos">Jogos</button>
@@ -426,6 +445,7 @@
       inMemoryPersistence,
       EmailAuthProvider,
       linkWithCredential,
+      reauthenticateWithCredential,
       updatePassword
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
@@ -532,12 +552,16 @@
     const minhaSenhaCard = document.getElementById("minhaSenhaCard");
     const minhaSenhaInfo = document.getElementById("minhaSenhaInfo");
     const formMinhaSenha = document.getElementById("formMinhaSenha");
+    const trocarSenhaCard = document.getElementById("trocarSenhaCard");
+    const formTrocarSenha = document.getElementById("formTrocarSenha");
 
     function atualizarPainelMinhaSenha(user) {
       const temSenha = user.providerData.some((p) => p.providerId === "password");
-      // Só mostra o painel enquanto a conta ainda não tem senha cadastrada.
-      // Depois de configurada uma vez, não precisa aparecer de novo.
+      // Só mostra o painel de "primeira senha" enquanto a conta ainda não tem
+      // senha cadastrada. Depois disso, quem cuida de trocar a senha é o
+      // painel "Trocar senha" abaixo.
       minhaSenhaCard.style.display = temSenha ? "none" : "block";
+      trocarSenhaCard.style.display = temSenha ? "block" : "none";
       minhaSenhaInfo.textContent = "Sua conta ainda não tem senha cadastrada. Defina uma para poder entrar com email e senha (o login com Google foi removido).";
     }
 
@@ -566,6 +590,41 @@
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao salvar senha: " + traduzirErroAuth(err), "error");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    formTrocarSenha.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const senhaAtual = document.getElementById("senhaAtual").value;
+      const novaSenha = document.getElementById("senhaNovaTroca").value;
+      const confirmarNovaSenha = document.getElementById("senhaNovaTrocaConfirmar").value;
+
+      if (novaSenha.length < 6) {
+        showGlobalMessage("A nova senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
+      if (novaSenha !== confirmarNovaSenha) {
+        showGlobalMessage("As senhas não coincidem.", "error");
+        return;
+      }
+
+      const submitBtn = formTrocarSenha.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, senhaAtual);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        await updatePassword(auth.currentUser, novaSenha);
+        formTrocarSenha.reset();
+        showGlobalMessage("Senha alterada com sucesso.", "success");
+      } catch (err) {
+        console.error(err);
+        if (err?.code === "auth/invalid-credential" || err?.code === "auth/wrong-password") {
+          showGlobalMessage("Senha atual incorreta.", "error");
+        } else {
+          showGlobalMessage("Erro ao trocar senha: " + traduzirErroAuth(err), "error");
+        }
       } finally {
         submitBtn.disabled = false;
       }
