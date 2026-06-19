@@ -396,6 +396,13 @@
           <button type="submit">Adicionar jogo</button>
         </form>
 
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+          <button type="button" id="excluirTodosJogosBtn"
+            style="padding:9px 16px; border:none; border-radius:6px; background:#7f1d1d; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
+            Excluir todos os jogos
+          </button>
+        </div>
+
         <table>
           <thead>
             <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
@@ -899,13 +906,46 @@
       });
     }
 
+    const excluirTodosJogosBtn = document.getElementById("excluirTodosJogosBtn");
+    excluirTodosJogosBtn.addEventListener("click", async () => {
+      const confirmado = confirm(
+        "Excluir TODOS os jogos cadastrados? Todos os palpites relacionados também serão excluídos. Essa ação não pode ser desfeita."
+      );
+      if (!confirmado) return;
+
+      excluirTodosJogosBtn.disabled = true;
+      try {
+        const jogosSnap = await getDocs(collection(db, "jogos"));
+        if (jogosSnap.empty) {
+          showGlobalMessage("Não há jogos cadastrados para excluir.", "info");
+          return;
+        }
+
+        const palpitesSnap = await getDocs(collection(db, "palpites"));
+        await Promise.all(palpitesSnap.docs.map((p) => deleteDoc(p.ref)));
+        await Promise.all(jogosSnap.docs.map((j) => deleteDoc(j.ref)));
+
+        showGlobalMessage(`${jogosSnap.size} jogo(s) e seus palpites foram excluídos.`, "success");
+        loadJogos();
+        loadResultadosPendentes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao excluir jogos: " + err.message, "error");
+      } finally {
+        excluirTodosJogosBtn.disabled = false;
+      }
+    });
+
     // ---------- Importar jogos via Excel ----------
     const importJogosInput = document.getElementById("importJogosInput");
     const importJogosBtn = document.getElementById("importJogosBtn");
 
     function excelDataParaPartes(valor) {
       if (valor instanceof Date) {
-        return { ano: valor.getUTCFullYear(), mes: valor.getUTCMonth(), dia: valor.getUTCDate() };
+        // O SheetJS (cellDates:true) gera o Date já ajustado para ser lido
+        // com os getters locais (não UTC) — usar getUTC* aqui causa um
+        // desvio de fuso horário (ex.: 19h virando 22h06 no fuso de SP).
+        return { ano: valor.getFullYear(), mes: valor.getMonth(), dia: valor.getDate() };
       }
       if (typeof valor === "string") {
         const m = valor.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
@@ -920,7 +960,8 @@
 
     function excelHoraParaPartes(valor) {
       if (valor instanceof Date) {
-        return { hora: valor.getUTCHours(), minuto: valor.getUTCMinutes() };
+        // Mesmo motivo do excelDataParaPartes: usar getters locais, não UTC.
+        return { hora: valor.getHours(), minuto: valor.getMinutes() };
       }
       if (typeof valor === "number") {
         const totalMin = Math.round(valor * 24 * 60);
