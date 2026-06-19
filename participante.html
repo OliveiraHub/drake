@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drake - Participante</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080f;
+    --card: #0f0f1e;
+    --cyan: #00c8d4;
+    --gold: #FFD700;
+    --silver: #C0C0C0;
+    --bronze: #CD7F32;
+    --text: #e5e7eb;
+    --text-muted: #8b8b9e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Barlow Condensed", sans-serif;
+  }
+  header {
+    background: linear-gradient(135deg, #2d0b59 0%, #1a0a33 60%, #0c0820 100%);
+    padding: 22px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    border-bottom: 1px solid rgba(0, 200, 212, 0.25);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-left .logo {
+    height: 52px;
+    width: 52px;
+    object-fit: contain;
+  }
+  .main-nav {
+    display: flex;
+    gap: 16px;
+  }
+  .main-nav a {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .main-nav a:hover {
+    color: var(--cyan);
+  }
+  .main-nav a.active {
+    color: var(--cyan);
+    font-weight: 700;
+  }
+  .user-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .user-area .user-info {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+  button#logoutBtn {
+    padding: 8px 18px;
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--cyan);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  button#logoutBtn:hover {
+    background: var(--cyan);
+    color: #08080f;
+  }
+
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  #globalMessage {
+    margin-bottom: 16px;
+    font-size: 14px;
+    min-height: 18px;
+    font-weight: 600;
+  }
+  #globalMessage.error { color: #f87171; }
+  #globalMessage.success { color: #34d399; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .tab-btn {
+    padding: 10px 18px;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ---------- Navegação de dia ---------- */
+  .rodada-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .rodada-arrow {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--cyan);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .rodada-arrow:hover { background: rgba(0,200,212,0.12); }
+  .rodada-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+  #diaSelect {
+    background: var(--card);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ---------- Cards de jogo (compactos) ---------- */
+  .jogo-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    border-left: 4px solid transparent;
+  }
+  .jogo-card.aberto { border-left-color: var(--cyan); }
+  .jogo-card.fechado {
+    border-left-color: var(--text-muted);
+    opacity: 0.94;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .jogo-card.fechado:hover { background: #15152a; }
+
+  .jogo-linha-principal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+  }
+  .confronto-info {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+  }
+  .confronto {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .confronto .vs {
+    color: var(--text-muted);
+    font-weight: 500;
+    margin: 0 7px;
+    font-size: 14px;
+  }
+  .jogo-datahora-compacta {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .resultado-compacto {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--gold);
+    white-space: nowrap;
+  }
+  .status-pill {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .status-pill.aberto { background: rgba(0,200,212,0.15); color: var(--cyan); }
+  .status-pill.fechado { background: rgba(139,139,158,0.18); color: var(--text-muted); }
+
+  .palpite-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .placar-input {
+    width: 48px;
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    background: #15152a;
+    color: #fff;
+    text-align: center;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .save-palpite-btn {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--cyan);
+    color: #08080f;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .save-palpite-btn:hover { background: #2adde6; }
+  .save-palpite-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .empty-msg {
+    color: var(--text-muted);
+    font-size: 15px;
+    padding: 16px 0;
+    text-align: center;
+  }
+
+  /* ---------- Modal de palpites ---------- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    padding: 24px;
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .modal-titulo-bloco { min-width: 0; }
+  .modal-titulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .modal-confronto {
+    font-size: 19px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .modal-resultado {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 26px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    margin-left: 4px;
+  }
+  .modal-close:hover { color: #fff; }
+
+  table.modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.modal-table th {
+    text-align: left;
+    padding: 7px 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  table.modal-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  tr.linha-usuario td { background: rgba(0,200,212,0.08); }
+  .tipo-acerto {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .tipo-acerto.exato { background: rgba(255, 180, 0, 0.2); color: #FFC247; }
+  .tipo-acerto.resultado { background: rgba(52, 211, 153, 0.18); color: #34d399; }
+  .tipo-acerto.errou { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+
+  /* ---------- Ranking (reaproveitado de ranking.html) ---------- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 36px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px 22px;
+    border-top: 3px solid var(--cyan);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .stat-card.lider {
+    border-top-color: var(--gold);
+  }
+  .stat-card .stat-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .stat-card .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--cyan);
+  }
+  .stat-card.lider .stat-value {
+    color: var(--gold);
+    font-size: 24px;
+  }
+  .stat-card .stat-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .ranking-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .ranking-card h2 {
+    margin: 0 0 18px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  table.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+  }
+  table.ranking-table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  table.ranking-table td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    vertical-align: middle;
+  }
+  tr.posicao-1 td { background: rgba(255, 215, 0, 0.08); }
+  tr.posicao-2 td { background: rgba(192, 192, 192, 0.08); }
+  tr.posicao-3 td { background: rgba(205, 127, 50, 0.08); }
+
+  .posicao-cel {
+    font-size: 20px;
+    font-weight: 700;
+    width: 50px;
+  }
+  .posicao-1 .posicao-cel { color: var(--gold); }
+  .posicao-2 .posicao-cel { color: var(--silver); }
+  .posicao-3 .posicao-cel { color: var(--bronze); }
+
+  .nome-participante {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .pontos-col {
+    min-width: 180px;
+  }
+  .pontos-valor {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 4px;
+  }
+  tr.posicao-1 .pontos-valor { color: var(--gold); }
+  .barra-bg {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .barra-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--cyan), var(--gold));
+  }
+
+  .acertos-num {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <img class="logo" src="logo.png" alt="Drake">
+      <div class="header-titles">
+        <h1>Drake</h1>
+        <nav class="main-nav" id="mainNav" style="display:none;">
+          <a href="participante.html">Participante</a>
+          <a href="admin.html" id="navAdminLink">Admin</a>
+        </nav>
+      </div>
+    </div>
+    <div class="user-area">
+      <span class="user-info" id="userInfo"></span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="globalMessage"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="palpites">Palpites</button>
+      <button class="tab-btn" data-tab="ranking">Ranking</button>
+    </div>
+
+    <!-- PALPITES -->
+    <div class="tab-panel active" id="panel-palpites">
+      <div class="rodada-nav">
+        <button type="button" class="rodada-arrow" id="prevDiaBtn">&lt;</button>
+        <select id="diaSelect"></select>
+        <button type="button" class="rodada-arrow" id="nextDiaBtn">&gt;</button>
+      </div>
+
+      <div id="listaJogosDia"></div>
+      <div class="empty-msg" id="diaEmptyMsg" style="display:none;">Nenhum jogo cadastrado ainda.</div>
+    </div>
+
+    <!-- RANKING -->
+    <div class="tab-panel" id="panel-ranking">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Participantes</div>
+          <div class="stat-value" id="statParticipantes">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Jogos finalizados</div>
+          <div class="stat-value" id="statJogosFinalizados">-</div>
+        </div>
+        <div class="stat-card lider">
+          <div class="stat-label">Líder atual</div>
+          <div class="stat-value" id="statLiderNome">-</div>
+          <div class="stat-sub" id="statLiderPontos"></div>
+        </div>
+      </div>
+
+      <div class="ranking-card">
+        <h2>Classificação geral</h2>
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th>Pos.</th>
+              <th>Participante</th>
+              <th>Pontos</th>
+              <th>Acertos exatos</th>
+              <th>Acertos de resultado</th>
+            </tr>
+          </thead>
+          <tbody id="listaRanking"></tbody>
+        </table>
+        <div class="empty-msg" id="rankingEmptyMsg" style="display:none;">Nenhum participante cadastrado ainda.</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="palpitesModalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-titulo-bloco">
+          <div class="modal-titulo">Palpites do jogo</div>
+          <div class="modal-confronto" id="modalConfronto"></div>
+        </div>
+        <div class="modal-resultado" id="modalResultado"></div>
+        <button type="button" class="modal-close" id="modalCloseBtn">&times;</button>
+      </div>
+      <table class="modal-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Participante</th>
+            <th>Palpite</th>
+            <th>Pontuação</th>
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody id="modalTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      collection,
+      getDocs,
+      query,
+      where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDMuZb6L2HjddNtvJQHrqADlTuTHnwJ2M8",
+      authDomain: "bolao-drake.firebaseapp.com",
+      projectId: "bolao-drake",
+      storageBucket: "bolao-drake.firebasestorage.app",
+      messagingSenderId: "832605376091",
+      appId: "1:832605376091:web:d7644b2ba92ab896f1797e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const userInfo = document.getElementById("userInfo");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const globalMessage = document.getElementById("globalMessage");
+
+    const UMA_HORA_MS = 60 * 60 * 1000;
+
+    function showGlobalMessage(text, type) {
+      globalMessage.textContent = text;
+      globalMessage.className = type || "";
+      if (text) {
+        setTimeout(() => { globalMessage.textContent = ""; globalMessage.className = ""; }, 4000);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function formatDataHora(value) {
+      if (!value) return "-";
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      if (isNaN(dt.getTime())) return String(value);
+      return dt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    }
+
+    function getDataHoraMs(value) {
+      if (!value) return NaN;
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      return dt.getTime();
+    }
+
+    function jogoAindaAberto(data) {
+      const dataHoraMs = getDataHoraMs(data.dataHora);
+      return !isNaN(dataHoraMs) && (dataHoraMs - Date.now()) > UMA_HORA_MS;
+    }
+
+    const MEDALHAS = ["🥇", "🥈", "🥉"];
+    const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    function getDataKey(value) {
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      if (isNaN(dt.getTime())) return null;
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const d = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDiaLabel(dataKey) {
+      const [y, m, d] = dataKey.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const dd = String(d).padStart(2, "0");
+      const mm = String(m).padStart(2, "0");
+      return `${DIAS_SEMANA[dt.getDay()]} ${dd}/${mm}`;
+    }
+
+    let currentUser = null;
+    let participantesNomes = new Map(); // uid -> nome
+    let allJogos = [];
+    let diasDisponiveis = [];
+    let currentDiaIndex = -1;
+
+    // ---------- Auth guard ----------
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      currentUser = user;
+
+      let nomeExibido = user.email;
+      try {
+        const userDocSnap = await getDoc(doc(db, "users", user.uid));
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          if (userData.nome) {
+            nomeExibido = `${userData.nome} (${user.email})`;
+          }
+          if (userData.role === "admin") {
+            document.getElementById("mainNav").style.display = "flex";
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      userInfo.textContent = nomeExibido;
+      marcarLinkAtivo();
+
+      participantesNomes = await loadParticipantesNomes();
+      await loadJogosEDias();
+      await carregarRanking();
+    });
+
+    function marcarLinkAtivo() {
+      document.querySelectorAll(".main-nav a").forEach((a) => {
+        if (location.pathname.endsWith(a.getAttribute("href"))) {
+          a.classList.add("active");
+        }
+      });
+    }
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    });
+
+    // ---------- Tabs ----------
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // ---------- Participantes (nomes por uid) ----------
+    async function loadParticipantesNomes() {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("role", "==", "participante"));
+      const snapshot = await getDocs(q);
+      const map = new Map();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.uid) {
+          map.set(data.uid, data.nome || data.email || "Participante");
+        }
+      });
+      return map;
+    }
+
+    // ---------- Palpites por jogo ----------
+    async function getPalpite(gameId) {
+      const palpiteId = `${currentUser.uid}_${gameId}`;
+      const snap = await getDoc(doc(db, "palpites", palpiteId));
+      return snap.exists() ? snap.data() : null;
+    }
+
+    async function getTodosPalpites(gameId) {
+      const palpitesRef = collection(db, "palpites");
+      const q = query(palpitesRef, where("gameId", "==", gameId));
+      return getDocs(q);
+    }
+
+    // ---------- Dias ----------
+    const diaSelect = document.getElementById("diaSelect");
+    const prevDiaBtn = document.getElementById("prevDiaBtn");
+    const nextDiaBtn = document.getElementById("nextDiaBtn");
+    const listaJogosDia = document.getElementById("listaJogosDia");
+    const diaEmptyMsg = document.getElementById("diaEmptyMsg");
+
+    async function loadJogosEDias() {
+      const snapshot = await getDocs(collection(db, "jogos"));
+      allJogos = snapshot.docs
+        .map((d) => ({ id: d.id, data: d.data() }))
+        .sort((a, b) => getDataHoraMs(a.data.dataHora) - getDataHoraMs(b.data.dataHora));
+
+      diasDisponiveis = Array.from(
+        new Set(allJogos.map((j) => getDataKey(j.data.dataHora)).filter((k) => k !== null))
+      ).sort();
+
+      diaSelect.innerHTML = diasDisponiveis.map((k) => `<option value="${k}">${formatDiaLabel(k)}</option>`).join("");
+
+      if (diasDisponiveis.length === 0) {
+        listaJogosDia.innerHTML = "";
+        diaEmptyMsg.style.display = "block";
+        diaEmptyMsg.textContent = "Nenhum jogo cadastrado ainda.";
+        prevDiaBtn.disabled = true;
+        nextDiaBtn.disabled = true;
+        return;
+      }
+
+      if (currentDiaIndex === -1) {
+        currentDiaIndex = encontrarDiaAtual();
+      } else {
+        currentDiaIndex = Math.min(currentDiaIndex, diasDisponiveis.length - 1);
+      }
+
+      await renderDiaAtual();
+    }
+
+    function encontrarDiaAtual() {
+      for (let i = 0; i < diasDisponiveis.length; i++) {
+        const jogosDoDia = allJogos.filter((j) => getDataKey(j.data.dataHora) === diasDisponiveis[i]);
+        const todasFinalizadas = jogosDoDia.length > 0 && jogosDoDia.every((j) => j.data.finalizado);
+        if (!todasFinalizadas) return i;
+      }
+      return diasDisponiveis.length - 1;
+    }
+
+    prevDiaBtn.addEventListener("click", () => {
+      if (currentDiaIndex > 0) {
+        currentDiaIndex--;
+        renderDiaAtual();
+      }
+    });
+
+    nextDiaBtn.addEventListener("click", () => {
+      if (currentDiaIndex < diasDisponiveis.length - 1) {
+        currentDiaIndex++;
+        renderDiaAtual();
+      }
+    });
+
+    diaSelect.addEventListener("change", () => {
+      const idx = diasDisponiveis.indexOf(diaSelect.value);
+      if (idx !== -1) {
+        currentDiaIndex = idx;
+        renderDiaAtual();
+      }
+    });
+
+    async function renderDiaAtual() {
+      const diaKey = diasDisponiveis[currentDiaIndex];
+      diaSelect.value = diaKey;
+      prevDiaBtn.disabled = currentDiaIndex <= 0;
+      nextDiaBtn.disabled = currentDiaIndex >= diasDisponiveis.length - 1;
+
+      const jogosDoDia = allJogos.filter((j) => getDataKey(j.data.dataHora) === diaKey);
+
+      listaJogosDia.innerHTML = "";
+      diaEmptyMsg.style.display = jogosDoDia.length === 0 ? "block" : "none";
+      diaEmptyMsg.textContent = "Nenhum jogo cadastrado nesse dia.";
+
+      for (const jogoDoc of jogosDoDia) {
+        const card = await criarJogoCard(jogoDoc);
+        listaJogosDia.appendChild(card);
+      }
+    }
+
+    async function criarJogoCard(jogoDoc) {
+      const data = jogoDoc.data;
+      const gameId = jogoDoc.id;
+      const aberto = !data.finalizado && jogoAindaAberto(data);
+
+      const card = document.createElement("div");
+      card.className = "jogo-card " + (aberto ? "aberto" : "fechado");
+
+      if (aberto) {
+        const meuPalpite = await getPalpite(gameId);
+
+        card.innerHTML = `
+          <div class="jogo-linha-principal">
+            <div class="confronto-info">
+              <span class="confronto">${escapeHtml(data.timeCasa)}<span class="vs">x</span>${escapeHtml(data.timeFora)}</span>
+              <span class="jogo-datahora-compacta">${formatDataHora(data.dataHora)}</span>
+            </div>
+            <span class="status-pill aberto">Aberto</span>
+          </div>
+          <div class="palpite-form">
+            <input type="number" min="0" class="placar-input" data-casa value="${meuPalpite ? meuPalpite.placarCasa : ""}">
+            <span class="vs">x</span>
+            <input type="number" min="0" class="placar-input" data-fora value="${meuPalpite ? meuPalpite.placarFora : ""}">
+            <button type="button" class="save-palpite-btn">Salvar palpite</button>
+          </div>
+        `;
+
+        const btn = card.querySelector(".save-palpite-btn");
+        const inputCasa = card.querySelector("[data-casa]");
+        const inputFora = card.querySelector("[data-fora]");
+
+        btn.addEventListener("click", async () => {
+          // Revalida o prazo no instante do clique. A garantia final, à prova de
+          // DevTools, vem das Firestore Security Rules — isto é só feedback imediato.
+          if (!jogoAindaAberto(data)) {
+            showGlobalMessage("O prazo para esse palpite encerrou.", "error");
+            renderDiaAtual();
+            return;
+          }
+
+          const placarCasa = parseInt(inputCasa.value, 10);
+          const placarFora = parseInt(inputFora.value, 10);
+
+          if (isNaN(placarCasa) || isNaN(placarFora)) {
+            showGlobalMessage("Preencha os dois campos de placar.", "error");
+            return;
+          }
+
+          btn.disabled = true;
+          try {
+            const palpiteId = `${currentUser.uid}_${gameId}`;
+            await setDoc(doc(db, "palpites", palpiteId), {
+              userId: currentUser.uid,
+              gameId,
+              placarCasa,
+              placarFora
+            });
+            showGlobalMessage("Palpite salvo com sucesso.", "success");
+          } catch (err) {
+            console.error(err);
+            if (err.code === "permission-denied") {
+              showGlobalMessage("O prazo para esse palpite encerrou.", "error");
+              renderDiaAtual();
+            } else {
+              showGlobalMessage("Erro ao salvar palpite: " + err.message, "error");
+            }
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      } else {
+        const resultadoTexto = data.finalizado ? `${data.placarCasa} - ${data.placarFora}` : "Aguardando";
+
+        card.innerHTML = `
+          <div class="jogo-linha-principal">
+            <div class="confronto-info">
+              <span class="confronto">${escapeHtml(data.timeCasa)}<span class="vs">x</span>${escapeHtml(data.timeFora)}</span>
+              <span class="jogo-datahora-compacta">${formatDataHora(data.dataHora)}</span>
+            </div>
+            <span class="resultado-compacto">${resultadoTexto}</span>
+            <span class="status-pill fechado">Encerrado</span>
+          </div>
+        `;
+
+        card.addEventListener("click", () => abrirModalPalpites(gameId, data));
+      }
+
+      return card;
+    }
+
+    // ---------- Modal de palpites do jogo ----------
+    const modalOverlay = document.getElementById("palpitesModalOverlay");
+    const modalConfronto = document.getElementById("modalConfronto");
+    const modalResultado = document.getElementById("modalResultado");
+    const modalTableBody = document.getElementById("modalTableBody");
+    const modalCloseBtn = document.getElementById("modalCloseBtn");
+
+    function fecharModal() {
+      modalOverlay.classList.remove("active");
+    }
+
+    modalCloseBtn.addEventListener("click", fecharModal);
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) fecharModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") fecharModal();
+    });
+
+    async function abrirModalPalpites(gameId, data) {
+      modalConfronto.textContent = `${data.timeCasa} × ${data.timeFora}`;
+      modalResultado.textContent = data.finalizado
+        ? `${data.placarCasa} – ${data.placarFora}`
+        : "Aguardando resultado";
+
+      modalTableBody.innerHTML = `<tr><td colspan="5" class="empty-msg">Carregando...</td></tr>`;
+      modalOverlay.classList.add("active");
+
+      const snap = await getTodosPalpites(gameId);
+      const linhas = [];
+      snap.forEach((p) => {
+        const pd = p.data();
+        linhas.push({
+          uid: pd.userId,
+          nome: participantesNomes.get(pd.userId) || "Participante",
+          placarCasa: pd.placarCasa,
+          placarFora: pd.placarFora,
+          pontos: Number(pd.pontos) || 0,
+          acertoExato: !!pd.acertoExato,
+          acertoResultado: !!pd.acertoResultado
+        });
+      });
+
+      linhas.sort((a, b) => {
+        if (data.finalizado && b.pontos !== a.pontos) return b.pontos - a.pontos;
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
+
+      if (linhas.length === 0) {
+        modalTableBody.innerHTML = `<tr><td colspan="5" class="empty-msg">Nenhum palpite registrado para esse jogo.</td></tr>`;
+        return;
+      }
+
+      modalTableBody.innerHTML = linhas
+        .map((l, idx) => {
+          const isUsuario = l.uid === currentUser.uid;
+          let tipoHtml = "-";
+          let pontosHtml = "-";
+
+          if (data.finalizado) {
+            if (l.acertoExato) {
+              tipoHtml = `<span class="tipo-acerto exato">Placar Exato</span>`;
+            } else if (l.acertoResultado) {
+              tipoHtml = `<span class="tipo-acerto resultado">Acertou Resultado</span>`;
+            } else {
+              tipoHtml = `<span class="tipo-acerto errou">Errou</span>`;
+            }
+            pontosHtml = `${l.pontos} pts`;
+          }
+
+          return `
+            <tr class="${isUsuario ? "linha-usuario" : ""}">
+              <td>${idx + 1}</td>
+              <td>${escapeHtml(l.nome)}</td>
+              <td>${l.placarCasa} x ${l.placarFora}</td>
+              <td>${tipoHtml}</td>
+              <td>${pontosHtml}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    // ---------- Ranking (mesma lógica de ranking.html) ----------
+    async function carregarRanking() {
+      const usersRef = collection(db, "users");
+      const participantesQuery = query(usersRef, where("role", "==", "participante"));
+      const participantesSnap = await getDocs(participantesQuery);
+
+      const participantesPorUid = new Map();
+      participantesSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        participantesPorUid.set(docSnap.id, {
+          nome: data.nome || data.email || "Participante",
+          email: data.email || "",
+          pontos: 0,
+          acertosExatos: 0,
+          acertosResultado: 0
+        });
+      });
+
+      const palpitesSnap = await getDocs(collection(db, "palpites"));
+      palpitesSnap.forEach((docSnap) => {
+        const palpite = docSnap.data();
+        const uid = palpite.userId;
+        if (!uid) return;
+
+        if (!participantesPorUid.has(uid)) {
+          return;
+        }
+
+        const stats = participantesPorUid.get(uid);
+        stats.pontos += Number(palpite.pontos) || 0;
+        if (palpite.acertoExato) stats.acertosExatos += 1;
+        if (palpite.acertoResultado) stats.acertosResultado += 1;
+      });
+
+      const jogosFinalizadosSnap = await getDocs(query(collection(db, "jogos"), where("finalizado", "==", true)));
+
+      const ranking = Array.from(participantesPorUid.values())
+        .sort((a, b) => b.pontos - a.pontos);
+
+      renderStats(participantesPorUid.size, jogosFinalizadosSnap.size, ranking);
+      renderRanking(ranking);
+    }
+
+    function renderStats(totalParticipantes, totalJogosFinalizados, ranking) {
+      document.getElementById("statParticipantes").textContent = totalParticipantes;
+      document.getElementById("statJogosFinalizados").textContent = totalJogosFinalizados;
+
+      const lider = ranking[0];
+      if (lider) {
+        document.getElementById("statLiderNome").textContent = lider.nome;
+        document.getElementById("statLiderPontos").textContent = `${lider.pontos} pontos`;
+      } else {
+        document.getElementById("statLiderNome").textContent = "-";
+        document.getElementById("statLiderPontos").textContent = "";
+      }
+    }
+
+    function renderRanking(ranking) {
+      const lista = document.getElementById("listaRanking");
+      const emptyMsg = document.getElementById("rankingEmptyMsg");
+
+      lista.innerHTML = "";
+      emptyMsg.style.display = ranking.length === 0 ? "block" : "none";
+
+      const maxPontos = Math.max(1, ...ranking.map((r) => r.pontos));
+
+      ranking.forEach((r, index) => {
+        const posicao = index + 1;
+        const tr = document.createElement("tr");
+        if (posicao <= 3) tr.classList.add(`posicao-${posicao}`);
+
+        const posicaoTexto = posicao <= 3 ? MEDALHAS[posicao - 1] : posicao;
+        const larguraBarra = Math.round((r.pontos / maxPontos) * 100);
+
+        tr.innerHTML = `
+          <td class="posicao-cel">${posicaoTexto}</td>
+          <td class="nome-participante">${escapeHtml(r.nome)}</td>
+          <td class="pontos-col">
+            <div class="pontos-valor">${r.pontos} pts</div>
+            <div class="barra-bg"><div class="barra-fill" style="width:${larguraBarra}%"></div></div>
+          </td>
+          <td class="acertos-num">${r.acertosExatos}</td>
+          <td class="acertos-num">${r.acertosResultado}</td>
+        `;
+        lista.appendChild(tr);
+      });
+    }
+  </script>
+
+</body>
+</html>
