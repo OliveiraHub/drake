@@ -366,6 +366,20 @@
 
       <!-- JOGOS -->
       <div class="tab-panel" id="panel-jogos">
+        <div style="margin-bottom:20px; padding:16px; background:#15152a; border-radius:10px;">
+          <p style="margin:0 0 10px; font-size:14px; color:var(--text-muted);">
+            Importar jogos via planilha (.xlsx ou .xls): a primeira linha deve ter os cabeçalhos
+            <strong>Casa</strong>, <strong>Visitante</strong>, <strong>Data</strong> (dd/mm/aaaa) e <strong>Hora</strong> (hh:mm).
+          </p>
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <input type="file" id="importJogosInput" accept=".xlsx,.xls">
+            <button type="button" id="importJogosBtn"
+              style="padding:9px 16px; border:none; border-radius:6px; background:var(--cyan); color:#08080f; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; height:38px;">
+              Importar planilha
+            </button>
+          </div>
+        </div>
+
         <form class="inline-form" id="formJogo">
           <div class="field">
             <label for="jogoTimeCasa">Time da casa</label>
@@ -438,6 +452,7 @@
     </div>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="module">
     import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -883,6 +898,135 @@
         listaJogos.appendChild(tr);
       });
     }
+
+    // ---------- Importar jogos via Excel ----------
+    const importJogosInput = document.getElementById("importJogosInput");
+    const importJogosBtn = document.getElementById("importJogosBtn");
+
+    function excelDataParaPartes(valor) {
+      if (valor instanceof Date) {
+        return { ano: valor.getUTCFullYear(), mes: valor.getUTCMonth(), dia: valor.getUTCDate() };
+      }
+      if (typeof valor === "string") {
+        const m = valor.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (m) {
+          let ano = parseInt(m[3], 10);
+          if (ano < 100) ano += 2000;
+          return { ano, mes: parseInt(m[2], 10) - 1, dia: parseInt(m[1], 10) };
+        }
+      }
+      return null;
+    }
+
+    function excelHoraParaPartes(valor) {
+      if (valor instanceof Date) {
+        return { hora: valor.getUTCHours(), minuto: valor.getUTCMinutes() };
+      }
+      if (typeof valor === "number") {
+        const totalMin = Math.round(valor * 24 * 60);
+        return { hora: Math.floor(totalMin / 60) % 24, minuto: totalMin % 60 };
+      }
+      if (typeof valor === "string") {
+        const m = valor.trim().match(/^(\d{1,2}):(\d{2})/);
+        if (m) {
+          return { hora: parseInt(m[1], 10), minuto: parseInt(m[2], 10) };
+        }
+      }
+      return null;
+    }
+
+    async function lerPlanilhaJogos(file) {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const primeiraAba = workbook.SheetNames[0];
+      const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[primeiraAba], { defval: "" });
+
+      const jogos = [];
+      const ignoradas = [];
+
+      linhas.forEach((linha, idx) => {
+        const chaves = Object.keys(linha).reduce((acc, k) => {
+          acc[k.trim().toLowerCase()] = linha[k];
+          return acc;
+        }, {});
+
+        const timeCasa = String(chaves["casa"] ?? "").trim();
+        const timeFora = String(chaves["visitante"] ?? "").trim();
+        const dataValor = chaves["data"];
+        const horaValor = chaves["hora"];
+
+        if (!timeCasa || !timeFora || dataValor === undefined || dataValor === "") {
+          ignoradas.push(idx + 2);
+          return;
+        }
+
+        const dataPartes = excelDataParaPartes(dataValor);
+        if (!dataPartes) {
+          ignoradas.push(idx + 2);
+          return;
+        }
+
+        let hora = 0, minuto = 0;
+        if (horaValor !== undefined && horaValor !== "") {
+          const horaPartes = excelHoraParaPartes(horaValor);
+          if (horaPartes) {
+            hora = horaPartes.hora;
+            minuto = horaPartes.minuto;
+          }
+        }
+
+        const dataHora = new Date(dataPartes.ano, dataPartes.mes, dataPartes.dia, hora, minuto);
+        if (isNaN(dataHora.getTime())) {
+          ignoradas.push(idx + 2);
+          return;
+        }
+
+        jogos.push({
+          timeCasa,
+          timeFora,
+          dataHora: Timestamp.fromDate(dataHora),
+          placarCasa: null,
+          placarFora: null,
+          finalizado: false
+        });
+      });
+
+      return { jogos, ignoradas };
+    }
+
+    importJogosBtn.addEventListener("click", async () => {
+      const file = importJogosInput.files[0];
+      if (!file) {
+        showGlobalMessage("Selecione um arquivo Excel primeiro.", "error");
+        return;
+      }
+
+      importJogosBtn.disabled = true;
+      try {
+        const { jogos, ignoradas } = await lerPlanilhaJogos(file);
+
+        if (jogos.length === 0) {
+          showGlobalMessage("Nenhum jogo válido encontrado na planilha. Confira os cabeçalhos (Casa, Visitante, Data, Hora).", "error");
+          return;
+        }
+
+        await Promise.all(jogos.map((jogo) => addDoc(collection(db, "jogos"), jogo)));
+
+        let msg = `${jogos.length} jogo(s) importado(s) com sucesso.`;
+        if (ignoradas.length > 0) {
+          msg += ` ${ignoradas.length} linha(s) ignorada(s) (linhas: ${ignoradas.join(", ")}).`;
+        }
+        showGlobalMessage(msg, "success");
+        importJogosInput.value = "";
+        loadJogos();
+        loadResultadosPendentes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao importar planilha: " + err.message, "error");
+      } finally {
+        importJogosBtn.disabled = false;
+      }
+    });
 
     formJogo.addEventListener("submit", async (e) => {
       e.preventDefault();
