@@ -396,7 +396,11 @@
           <button type="submit">Adicionar jogo</button>
         </form>
 
-        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+          <button type="button" id="excluirSelecionadosJogosBtn"
+            style="padding:9px 16px; border:none; border-radius:6px; background:#5b1a1a; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
+            Excluir selecionados
+          </button>
           <button type="button" id="excluirTodosJogosBtn"
             style="padding:9px 16px; border:none; border-radius:6px; background:#7f1d1d; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
             Excluir todos os jogos
@@ -405,7 +409,10 @@
 
         <table>
           <thead>
-            <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+            <tr>
+              <th><input type="checkbox" id="selecionarTodosJogos"></th>
+              <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
+            </tr>
           </thead>
           <tbody id="listaJogos"></tbody>
         </table>
@@ -862,6 +869,8 @@
 
       listaJogos.innerHTML = "";
       jogosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+      const selecionarTodosJogosCb = document.getElementById("selecionarTodosJogos");
+      if (selecionarTodosJogosCb) selecionarTodosJogosCb.checked = false;
 
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -870,6 +879,7 @@
           : "Pendente";
         const tr = document.createElement("tr");
         tr.innerHTML = `
+          <td><input type="checkbox" class="jogo-checkbox" data-id="${docSnap.id}"></td>
           <td>${escapeHtml(data.timeCasa)}</td>
           <td>${escapeHtml(data.timeFora)}</td>
           <td>${formatDataHora(data.dataHora)}</td>
@@ -905,6 +915,48 @@
         listaJogos.appendChild(tr);
       });
     }
+
+    const selecionarTodosJogos = document.getElementById("selecionarTodosJogos");
+    selecionarTodosJogos.addEventListener("change", () => {
+      document.querySelectorAll(".jogo-checkbox").forEach((cb) => {
+        cb.checked = selecionarTodosJogos.checked;
+      });
+    });
+
+    const excluirSelecionadosJogosBtn = document.getElementById("excluirSelecionadosJogosBtn");
+    excluirSelecionadosJogosBtn.addEventListener("click", async () => {
+      const idsSelecionados = Array.from(document.querySelectorAll(".jogo-checkbox:checked")).map(
+        (cb) => cb.dataset.id
+      );
+
+      if (idsSelecionados.length === 0) {
+        showGlobalMessage("Selecione ao menos um jogo para excluir.", "error");
+        return;
+      }
+
+      const confirmado = confirm(
+        `Excluir ${idsSelecionados.length} jogo(s) selecionado(s)? Os palpites relacionados também serão excluídos. Essa ação não pode ser desfeita.`
+      );
+      if (!confirmado) return;
+
+      excluirSelecionadosJogosBtn.disabled = true;
+      try {
+        const idsSet = new Set(idsSelecionados);
+        const palpitesSnap = await getDocs(collection(db, "palpites"));
+        const palpitesParaExcluir = palpitesSnap.docs.filter((p) => idsSet.has(p.data().gameId));
+        await Promise.all(palpitesParaExcluir.map((p) => deleteDoc(p.ref)));
+        await Promise.all(idsSelecionados.map((id) => deleteDoc(doc(db, "jogos", id))));
+
+        showGlobalMessage(`${idsSelecionados.length} jogo(s) e seus palpites foram excluídos.`, "success");
+        loadJogos();
+        loadResultadosPendentes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao excluir jogos selecionados: " + err.message, "error");
+      } finally {
+        excluirSelecionadosJogosBtn.disabled = false;
+      }
+    });
 
     const excluirTodosJogosBtn = document.getElementById("excluirTodosJogosBtn");
     excluirTodosJogosBtn.addEventListener("click", async () => {
