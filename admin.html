@@ -305,6 +305,52 @@
     padding: 16px 0;
     text-align: center;
   }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 640px) {
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 16px;
+    }
+    .header-left { width: 100%; }
+    .header-left .logo { height: 40px; width: 40px; }
+    header h1 { font-size: 26px; }
+    .main-nav { flex-wrap: wrap; gap: 12px; }
+    .user-area { width: 100%; justify-content: space-between; }
+
+    main { padding: 20px 14px 48px; }
+
+    .tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+    .tab-btn {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .content-card { padding: 16px; }
+
+    form.inline-form {
+      grid-template-columns: 1fr;
+    }
+
+    table { font-size: 13px; }
+    table th, table td { padding: 8px; }
+
+    .placar-input { width: 40px; }
+  }
 </style>
 </head>
 <body>
@@ -355,12 +401,14 @@
           <button type="submit">Salvar</button>
         </form>
 
-        <table>
-          <thead>
-            <tr><th>Nome</th><th>Email</th><th>Status</th><th></th></tr>
-          </thead>
-          <tbody id="listaParticipantes"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Nome</th><th>Email</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="listaParticipantes"></tbody>
+          </table>
+        </div>
         <div class="empty-msg" id="participantesEmptyMsg" style="display:none;">Nenhum participante cadastrado ainda.</div>
       </div>
 
@@ -396,7 +444,7 @@
           <button type="submit">Adicionar jogo</button>
         </form>
 
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
           <button type="button" id="excluirSelecionadosJogosBtn"
             style="padding:9px 16px; border:none; border-radius:6px; background:#5b1a1a; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
             Excluir selecionados
@@ -407,26 +455,30 @@
           </button>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th><input type="checkbox" id="selecionarTodosJogos"></th>
-              <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="listaJogos"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selecionarTodosJogos"></th>
+                <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="listaJogos"></tbody>
+          </table>
+        </div>
         <div class="empty-msg" id="jogosEmptyMsg" style="display:none;">Nenhum jogo cadastrado ainda.</div>
       </div>
 
       <!-- RESULTADOS -->
       <div class="tab-panel" id="panel-resultados">
-        <table>
-          <thead>
-            <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
-          </thead>
-          <tbody id="listaResultados"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+            </thead>
+            <tbody id="listaResultados"></tbody>
+          </table>
+        </div>
         <div class="empty-msg" id="resultadosEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
       </div>
 
@@ -858,6 +910,12 @@
       return dt.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
     }
 
+    function dataHoraMs(value) {
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      const ms = dt.getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+
     async function loadJogos() {
       const jogosRef = collection(db, "jogos");
       let snapshot;
@@ -867,12 +925,17 @@
         snapshot = await getDocs(jogosRef);
       }
 
+      // Reordena no cliente como garantia, mesmo se a query acima cair no fallback sem orderBy.
+      const docsOrdenados = [...snapshot.docs].sort(
+        (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
+      );
+
       listaJogos.innerHTML = "";
       jogosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
       const selecionarTodosJogosCb = document.getElementById("selecionarTodosJogos");
       if (selecionarTodosJogosCb) selecionarTodosJogosCb.checked = false;
 
-      snapshot.forEach((docSnap) => {
+      docsOrdenados.forEach((docSnap) => {
         const data = docSnap.data();
         const placar = data.finalizado
           ? `${data.placarCasa} x ${data.placarFora}`
@@ -1163,10 +1226,14 @@
       const q = query(jogosRef, where("finalizado", "==", false));
       const snapshot = await getDocs(q);
 
+      const docsOrdenados = [...snapshot.docs].sort(
+        (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
+      );
+
       listaResultados.innerHTML = "";
       resultadosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
 
-      snapshot.forEach((docSnap) => {
+      docsOrdenados.forEach((docSnap) => {
         const data = docSnap.data();
         const tr = document.createElement("tr");
         tr.innerHTML = `

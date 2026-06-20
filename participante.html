@@ -495,6 +495,65 @@
     font-weight: 600;
     color: var(--text);
   }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 640px) {
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 16px;
+    }
+    .header-left { width: 100%; }
+    .header-left .logo { height: 40px; width: 40px; }
+    header h1 { font-size: 26px; }
+    .main-nav { flex-wrap: wrap; gap: 12px; }
+    .user-area { width: 100%; justify-content: space-between; }
+
+    main { padding: 20px 14px 48px; }
+
+    .tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+    .tab-btn {
+      flex: 0 0 auto;
+      padding: 9px 12px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .rodada-nav { gap: 10px; }
+    #diaSelect { padding: 8px 10px; font-size: 15px; }
+    .rodada-arrow { width: 36px; height: 36px; font-size: 16px; }
+
+    .jogo-card { padding: 10px 14px; }
+    .confronto { font-size: 15px; white-space: normal; }
+    .confronto .vs { margin: 0 5px; }
+    .jogo-linha-principal { gap: 8px 12px; }
+
+    .stats-row { gap: 12px; }
+    .stat-card { padding: 16px 18px; }
+    .stat-card .stat-value { font-size: 26px; }
+
+    .ranking-card { padding: 16px; }
+    table { font-size: 13px; }
+    table th, table td { padding: 8px; }
+    .nome-participante { font-size: 16px; }
+    .pontos-col { min-width: 140px; }
+
+    .modal-box { padding: 16px; max-height: 86vh; }
+    .modal-header { gap: 10px; }
+    .modal-confronto { font-size: 16px; }
+    .modal-resultado { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
@@ -556,18 +615,20 @@
 
       <div class="ranking-card">
         <h2>Classificação geral</h2>
-        <table class="ranking-table">
-          <thead>
-            <tr>
-              <th>Pos.</th>
-              <th>Participante</th>
-              <th>Pontos</th>
-              <th>Acertos exatos</th>
-              <th>Acertos de resultado</th>
-            </tr>
-          </thead>
-          <tbody id="listaRanking"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th>Pos.</th>
+                <th>Participante</th>
+                <th>Pontos</th>
+                <th>Acertos exatos</th>
+                <th>Acertos de resultado</th>
+              </tr>
+            </thead>
+            <tbody id="listaRanking"></tbody>
+          </table>
+        </div>
         <div class="empty-msg" id="rankingEmptyMsg" style="display:none;">Nenhum participante cadastrado ainda.</div>
       </div>
     </div>
@@ -583,18 +644,20 @@
         <div class="modal-resultado" id="modalResultado"></div>
         <button type="button" class="modal-close" id="modalCloseBtn">&times;</button>
       </div>
-      <table class="modal-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Participante</th>
-            <th>Palpite</th>
-            <th>Pontuação</th>
-            <th>Pts</th>
-          </tr>
-        </thead>
-        <tbody id="modalTableBody"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Participante</th>
+              <th>Palpite</th>
+              <th>Pontuação</th>
+              <th>Pts</th>
+            </tr>
+          </thead>
+          <tbody id="modalTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
