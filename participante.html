@@ -140,14 +140,7 @@
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
-  /* ---------- Navegação de dia ---------- */
-  .rodada-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 28px;
-  }
+  /* ---------- Navegação de dia (calendário) ---------- */
   .rodada-arrow {
     background: var(--card);
     border: 1px solid rgba(255,255,255,0.1);
@@ -162,7 +155,19 @@
   }
   .rodada-arrow:hover { background: rgba(0,200,212,0.12); }
   .rodada-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
-  #diaSelect {
+
+  .rodada-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .seletor-data-wrapper {
+    position: relative;
+  }
+  .seletor-data-btn {
     background: var(--card);
     color: #fff;
     border: 1px solid rgba(255,255,255,0.1);
@@ -172,6 +177,77 @@
     font-size: 17px;
     font-weight: 700;
     cursor: pointer;
+    text-transform: capitalize;
+  }
+  .seletor-data-btn:hover { background: #15152a; }
+
+  .calendario-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+    z-index: 20;
+  }
+  .calendario-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .calendario-header span {
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    min-width: 150px;
+    text-align: center;
+    text-transform: capitalize;
+  }
+  .calendario-dias-semana {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .calendario-dia {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: default;
+  }
+  .calendario-dia.vazio { visibility: hidden; }
+  .calendario-dia.tem-jogo {
+    background: rgba(0,200,212,0.15);
+    color: var(--cyan);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .calendario-dia.tem-jogo:hover { background: rgba(0,200,212,0.28); }
+  .calendario-dia.hoje { box-shadow: inset 0 0 0 1px var(--gold); }
+  .calendario-dia.selecionado {
+    background: var(--cyan);
+    color: #08080f;
   }
 
   /* ---------- Cards de jogo (compactos) ---------- */
@@ -519,8 +595,12 @@
     }
 
     .rodada-nav { gap: 10px; }
-    #diaSelect { padding: 8px 10px; font-size: 15px; }
+    .seletor-data-btn { padding: 8px 10px; font-size: 15px; }
+    .calendario-popover { width: 240px; padding: 12px; }
+    .calendario-header { gap: 10px; }
+    .calendario-header span { font-size: 15px; min-width: 130px; }
     .rodada-arrow { width: 36px; height: 36px; font-size: 16px; }
+    .calendario-dia { font-size: 13px; }
 
     .jogo-card { padding: 10px 14px; }
     .confronto { font-size: 15px; white-space: normal; }
@@ -575,7 +655,20 @@
     <div class="tab-panel active" id="panel-palpites">
       <div class="rodada-nav">
         <button type="button" class="rodada-arrow" id="prevDiaBtn">&lt;</button>
-        <select id="diaSelect"></select>
+        <div class="seletor-data-wrapper" id="seletorDataWrapper">
+          <button type="button" class="seletor-data-btn" id="seletorDataBtn"></button>
+          <div class="calendario-popover" id="calendarioPopover" style="display:none;">
+            <div class="calendario-header">
+              <button type="button" class="rodada-arrow" id="prevMesBtn">&lt;</button>
+              <span id="calendarioMesLabel"></span>
+              <button type="button" class="rodada-arrow" id="nextMesBtn">&gt;</button>
+            </div>
+            <div class="calendario-dias-semana">
+              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+            </div>
+            <div class="calendario-grid" id="calendarioGrid"></div>
+          </div>
+        </div>
         <button type="button" class="rodada-arrow" id="nextDiaBtn">&gt;</button>
       </div>
 
@@ -720,6 +813,10 @@
 
     const MEDALHAS = ["🥇", "🥈", "🥉"];
     const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const MESES = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
 
     function getDataKey(value) {
       const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
@@ -743,6 +840,7 @@
     let allJogos = [];
     let diasDisponiveis = [];
     let currentDiaIndex = -1;
+    let calendarioAnoMes = null; // { ano, mes } do mês exibido no calendário (mes é 0-based)
 
     // ---------- Auth guard ----------
     onAuthStateChanged(auth, async (user) => {
@@ -827,11 +925,45 @@
     }
 
     // ---------- Dias ----------
-    const diaSelect = document.getElementById("diaSelect");
     const prevDiaBtn = document.getElementById("prevDiaBtn");
     const nextDiaBtn = document.getElementById("nextDiaBtn");
+    const seletorDataWrapper = document.getElementById("seletorDataWrapper");
+    const seletorDataBtn = document.getElementById("seletorDataBtn");
+    const calendarioPopover = document.getElementById("calendarioPopover");
+    const prevMesBtn = document.getElementById("prevMesBtn");
+    const nextMesBtn = document.getElementById("nextMesBtn");
+    const calendarioMesLabel = document.getElementById("calendarioMesLabel");
+    const calendarioGrid = document.getElementById("calendarioGrid");
     const listaJogosDia = document.getElementById("listaJogosDia");
     const diaEmptyMsg = document.getElementById("diaEmptyMsg");
+
+    function abrirCalendarioPopover() {
+      calendarioPopover.style.display = "block";
+    }
+
+    function fecharCalendarioPopover() {
+      calendarioPopover.style.display = "none";
+    }
+
+    seletorDataBtn.addEventListener("click", () => {
+      const aberto = calendarioPopover.style.display !== "none";
+      if (aberto) {
+        fecharCalendarioPopover();
+      } else {
+        if (diasDisponiveis[currentDiaIndex]) {
+          const [ano, mes] = diasDisponiveis[currentDiaIndex].split("-").map(Number);
+          calendarioAnoMes = { ano, mes: mes - 1 };
+          renderCalendario();
+        }
+        abrirCalendarioPopover();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!seletorDataWrapper.contains(e.target)) {
+        fecharCalendarioPopover();
+      }
+    });
 
     async function loadJogosEDias() {
       const snapshot = await getDocs(collection(db, "jogos"));
@@ -843,14 +975,16 @@
         new Set(allJogos.map((j) => getDataKey(j.data.dataHora)).filter((k) => k !== null))
       ).sort();
 
-      diaSelect.innerHTML = diasDisponiveis.map((k) => `<option value="${k}">${formatDiaLabel(k)}</option>`).join("");
-
       if (diasDisponiveis.length === 0) {
         listaJogosDia.innerHTML = "";
         diaEmptyMsg.style.display = "block";
         diaEmptyMsg.textContent = "Nenhum jogo cadastrado ainda.";
+        seletorDataBtn.textContent = "Sem jogos";
         prevDiaBtn.disabled = true;
         nextDiaBtn.disabled = true;
+        const hoje = new Date();
+        calendarioAnoMes = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+        renderCalendario();
         return;
       }
 
@@ -872,6 +1006,63 @@
       return diasDisponiveis.length - 1;
     }
 
+    prevMesBtn.addEventListener("click", () => {
+      if (!calendarioAnoMes) return;
+      calendarioAnoMes.mes--;
+      if (calendarioAnoMes.mes < 0) {
+        calendarioAnoMes.mes = 11;
+        calendarioAnoMes.ano--;
+      }
+      renderCalendario();
+    });
+
+    nextMesBtn.addEventListener("click", () => {
+      if (!calendarioAnoMes) return;
+      calendarioAnoMes.mes++;
+      if (calendarioAnoMes.mes > 11) {
+        calendarioAnoMes.mes = 0;
+        calendarioAnoMes.ano++;
+      }
+      renderCalendario();
+    });
+
+    function renderCalendario() {
+      if (!calendarioAnoMes) return;
+      const { ano, mes } = calendarioAnoMes;
+      calendarioMesLabel.textContent = `${MESES[mes]} ${ano}`;
+
+      const diaSelecionadoKey = diasDisponiveis[currentDiaIndex] || null;
+      const hojeKey = getDataKey(new Date());
+      const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+      const totalDiasMes = new Date(ano, mes + 1, 0).getDate();
+
+      let html = "";
+      for (let i = 0; i < primeiroDiaSemana; i++) {
+        html += `<span class="calendario-dia vazio"></span>`;
+      }
+      for (let dia = 1; dia <= totalDiasMes; dia++) {
+        const key = `${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+        const temJogo = diasDisponiveis.includes(key);
+        const classes = ["calendario-dia"];
+        if (temJogo) classes.push("tem-jogo");
+        if (key === diaSelecionadoKey) classes.push("selecionado");
+        if (key === hojeKey) classes.push("hoje");
+        html += `<button type="button" class="${classes.join(" ")}" data-key="${key}" ${temJogo ? "" : "disabled"}>${dia}</button>`;
+      }
+      calendarioGrid.innerHTML = html;
+
+      calendarioGrid.querySelectorAll(".calendario-dia.tem-jogo").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = diasDisponiveis.indexOf(btn.dataset.key);
+          if (idx !== -1) {
+            currentDiaIndex = idx;
+            renderDiaAtual();
+            fecharCalendarioPopover();
+          }
+        });
+      });
+    }
+
     prevDiaBtn.addEventListener("click", () => {
       if (currentDiaIndex > 0) {
         currentDiaIndex--;
@@ -886,17 +1077,12 @@
       }
     });
 
-    diaSelect.addEventListener("change", () => {
-      const idx = diasDisponiveis.indexOf(diaSelect.value);
-      if (idx !== -1) {
-        currentDiaIndex = idx;
-        renderDiaAtual();
-      }
-    });
-
     async function renderDiaAtual() {
       const diaKey = diasDisponiveis[currentDiaIndex];
-      diaSelect.value = diaKey;
+      const [anoSelecionado, mesSelecionado] = diaKey.split("-").map(Number);
+      calendarioAnoMes = { ano: anoSelecionado, mes: mesSelecionado - 1 };
+      renderCalendario();
+      seletorDataBtn.textContent = formatDiaLabel(diaKey);
       prevDiaBtn.disabled = currentDiaIndex <= 0;
       nextDiaBtn.disabled = currentDiaIndex >= diasDisponiveis.length - 1;
 

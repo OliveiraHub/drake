@@ -309,6 +309,43 @@
     text-align: center;
   }
 
+  .jogos-secao {
+    background: #15152a;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .jogos-secao summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  .jogos-secao summary::-webkit-details-marker { display: none; }
+  .jogos-secao summary::before {
+    content: "▸";
+    color: var(--cyan);
+    font-size: 13px;
+    transition: transform 0.15s ease;
+  }
+  .jogos-secao[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .jogos-secao summary .contagem {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .jogos-secao .jogos-secao-conteudo {
+    padding: 0 16px 16px;
+  }
+
   .table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -447,29 +484,58 @@
           <button type="submit">Adicionar jogo</button>
         </form>
 
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-          <button type="button" id="excluirSelecionadosJogosBtn"
-            style="padding:9px 16px; border:none; border-radius:6px; background:#5b1a1a; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
-            Excluir selecionados
-          </button>
-          <button type="button" id="excluirTodosJogosBtn"
-            style="padding:9px 16px; border:none; border-radius:6px; background:#7f1d1d; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
-            Excluir todos os jogos
-          </button>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="selecionarTodosJogos">
+            Selecionar todos os jogos visíveis
+          </label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" id="excluirSelecionadosJogosBtn"
+              style="padding:9px 16px; border:none; border-radius:6px; background:#5b1a1a; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
+              Excluir selecionados
+            </button>
+            <button type="button" id="excluirTodosJogosBtn"
+              style="padding:9px 16px; border:none; border-radius:6px; background:#7f1d1d; color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
+              Excluir todos os jogos
+            </button>
+          </div>
         </div>
 
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th><input type="checkbox" id="selecionarTodosJogos"></th>
-                <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="listaJogos"></tbody>
-          </table>
-        </div>
-        <div class="empty-msg" id="jogosEmptyMsg" style="display:none;">Nenhum jogo cadastrado ainda.</div>
+        <details class="jogos-secao" id="secaoJogosFuturos" open>
+          <summary>Jogos a acontecer <span class="contagem" id="contagemJogosFuturos"></span></summary>
+          <div class="jogos-secao-conteudo">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="listaJogosFuturos"></tbody>
+              </table>
+            </div>
+            <div class="empty-msg" id="jogosFuturosEmptyMsg" style="display:none;">Nenhum jogo a acontecer.</div>
+          </div>
+        </details>
+
+        <details class="jogos-secao" id="secaoJogosPassados">
+          <summary>Jogos já realizados <span class="contagem" id="contagemJogosPassados"></span></summary>
+          <div class="jogos-secao-conteudo">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="listaJogosPassados"></tbody>
+              </table>
+            </div>
+            <div class="empty-msg" id="jogosPassadosEmptyMsg" style="display:none;">Nenhum jogo já realizado.</div>
+          </div>
+        </details>
       </div>
 
       <!-- RESULTADOS -->
@@ -963,8 +1029,12 @@
 
     // ---------- Jogos ----------
     const formJogo = document.getElementById("formJogo");
-    const listaJogos = document.getElementById("listaJogos");
-    const jogosEmptyMsg = document.getElementById("jogosEmptyMsg");
+    const listaJogosFuturos = document.getElementById("listaJogosFuturos");
+    const listaJogosPassados = document.getElementById("listaJogosPassados");
+    const jogosFuturosEmptyMsg = document.getElementById("jogosFuturosEmptyMsg");
+    const jogosPassadosEmptyMsg = document.getElementById("jogosPassadosEmptyMsg");
+    const contagemJogosFuturos = document.getElementById("contagemJogosFuturos");
+    const contagemJogosPassados = document.getElementById("contagemJogosPassados");
 
     function formatDataHora(value) {
       if (!value) return "-";
@@ -1109,13 +1179,25 @@
         (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
       );
 
-      listaJogos.innerHTML = "";
-      jogosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+      const agoraMs = Date.now();
+      const docsFuturos = docsOrdenados.filter((docSnap) => dataHoraMs(docSnap.data().dataHora) >= agoraMs);
+      const docsPassados = docsOrdenados.filter((docSnap) => dataHoraMs(docSnap.data().dataHora) < agoraMs).reverse();
+
+      listaJogosFuturos.innerHTML = "";
+      listaJogosPassados.innerHTML = "";
+      jogosFuturosEmptyMsg.style.display = docsFuturos.length === 0 ? "block" : "none";
+      jogosPassadosEmptyMsg.style.display = docsPassados.length === 0 ? "block" : "none";
+      contagemJogosFuturos.textContent = `(${docsFuturos.length})`;
+      contagemJogosPassados.textContent = `(${docsPassados.length})`;
+
       const selecionarTodosJogosCb = document.getElementById("selecionarTodosJogos");
       if (selecionarTodosJogosCb) selecionarTodosJogosCb.checked = false;
 
-      docsOrdenados.forEach((docSnap) => {
-        listaJogos.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
+      docsFuturos.forEach((docSnap) => {
+        listaJogosFuturos.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
+      });
+      docsPassados.forEach((docSnap) => {
+        listaJogosPassados.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
       });
     }
 
