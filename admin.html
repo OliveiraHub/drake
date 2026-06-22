@@ -235,6 +235,7 @@
   }
   .edit-participante-btn,
   .edit-jogo-btn,
+  .edit-resultado-btn,
   .save-edit-btn {
     padding: 6px 14px;
     border: none;
@@ -249,6 +250,7 @@
   }
   .edit-participante-btn:hover,
   .edit-jogo-btn:hover,
+  .edit-resultado-btn:hover,
   .save-edit-btn:hover { background: #2adde6; }
   .cancel-edit-btn {
     padding: 6px 14px;
@@ -540,15 +542,35 @@
 
       <!-- RESULTADOS -->
       <div class="tab-panel" id="panel-resultados">
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
-            </thead>
-            <tbody id="listaResultados"></tbody>
-          </table>
-        </div>
-        <div class="empty-msg" id="resultadosEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
+        <details class="jogos-secao" id="secaoResultadosPendentes" open>
+          <summary>Resultados pendentes <span class="contagem" id="contagemResultadosPendentes"></span></summary>
+          <div class="jogos-secao-conteudo">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+                </thead>
+                <tbody id="listaResultadosPendentes"></tbody>
+              </table>
+            </div>
+            <div class="empty-msg" id="resultadosPendentesEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
+          </div>
+        </details>
+
+        <details class="jogos-secao" id="secaoResultadosLancados">
+          <summary>Resultados já lançados <span class="contagem" id="contagemResultadosLancados"></span></summary>
+          <div class="jogos-secao-conteudo">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+                </thead>
+                <tbody id="listaResultadosLancados"></tbody>
+              </table>
+            </div>
+            <div class="empty-msg" id="resultadosLancadosEmptyMsg" style="display:none;">Nenhum resultado lançado ainda.</div>
+          </div>
+        </details>
       </div>
 
       <!-- MINHA CONTA -->
@@ -713,7 +735,7 @@
 
       loadParticipantes();
       loadJogos();
-      loadResultadosPendentes();
+      loadResultados();
     });
 
     // ---------- Meus dados (admin) ----------
@@ -1096,7 +1118,7 @@
             await deleteDoc(doc(db, "jogos", docId));
             showGlobalMessage("Jogo e palpites relacionados excluídos com sucesso.", "success");
             loadJogos();
-            loadResultadosPendentes();
+            loadResultados();
           } catch (err) {
             console.error(err);
             showGlobalMessage("Erro ao excluir jogo: " + err.message, "error");
@@ -1154,7 +1176,7 @@
           });
           showGlobalMessage("Jogo atualizado com sucesso.", "success");
           loadJogos();
-          loadResultadosPendentes();
+          loadResultados();
         } catch (err) {
           console.error(err);
           showGlobalMessage("Erro ao atualizar jogo: " + err.message, "error");
@@ -1234,7 +1256,7 @@
 
         showGlobalMessage(`${idsSelecionados.length} jogo(s) e seus palpites foram excluídos.`, "success");
         loadJogos();
-        loadResultadosPendentes();
+        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao excluir jogos selecionados: " + err.message, "error");
@@ -1264,7 +1286,7 @@
 
         showGlobalMessage(`${jogosSnap.size} jogo(s) e seus palpites foram excluídos.`, "success");
         loadJogos();
-        loadResultadosPendentes();
+        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao excluir jogos: " + err.message, "error");
@@ -1397,7 +1419,7 @@
         showGlobalMessage(msg, "success");
         importJogosInput.value = "";
         loadJogos();
-        loadResultadosPendentes();
+        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao importar planilha: " + err.message, "error");
@@ -1432,7 +1454,7 @@
         formJogo.reset();
         showGlobalMessage("Jogo cadastrado com sucesso.", "success");
         loadJogos();
-        loadResultadosPendentes();
+        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao cadastrar jogo: " + err.message, "error");
@@ -1440,81 +1462,183 @@
     });
 
     // ---------- Resultados ----------
-    const listaResultados = document.getElementById("listaResultados");
-    const resultadosEmptyMsg = document.getElementById("resultadosEmptyMsg");
+    const listaResultadosPendentes = document.getElementById("listaResultadosPendentes");
+    const listaResultadosLancados = document.getElementById("listaResultadosLancados");
+    const resultadosPendentesEmptyMsg = document.getElementById("resultadosPendentesEmptyMsg");
+    const resultadosLancadosEmptyMsg = document.getElementById("resultadosLancadosEmptyMsg");
+    const contagemResultadosPendentes = document.getElementById("contagemResultadosPendentes");
+    const contagemResultadosLancados = document.getElementById("contagemResultadosLancados");
 
-    async function loadResultadosPendentes() {
-      const jogosRef = collection(db, "jogos");
-      const q = query(jogosRef, where("finalizado", "==", false));
-      const snapshot = await getDocs(q);
+    async function salvarResultadoJogo(docId, placarCasa, placarFora) {
+      await updateDoc(doc(db, "jogos", docId), {
+        placarCasa,
+        placarFora,
+        finalizado: true
+      });
 
-      const docsOrdenados = [...snapshot.docs].sort(
-        (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
-      );
+      // Calcula e grava a pontuação de cada palpite feito para esse jogo
+      const palpitesRef = collection(db, "palpites");
+      const palpitesQuery = query(palpitesRef, where("gameId", "==", docId));
+      const palpitesSnap = await getDocs(palpitesQuery);
 
-      listaResultados.innerHTML = "";
-      resultadosEmptyMsg.style.display = snapshot.empty ? "block" : "none";
+      await Promise.all(palpitesSnap.docs.map((p) => {
+        const palpite = p.data();
+        const resultado = calcularPontuacaoPalpite(
+          { casa: placarCasa, fora: placarFora },
+          { casa: palpite.placarCasa, fora: palpite.placarFora }
+        );
+        return updateDoc(p.ref, resultado);
+      }));
+    }
 
-      docsOrdenados.forEach((docSnap) => {
-        const data = docSnap.data();
-        const tr = document.createElement("tr");
+    function criarLinhaResultadoPendente(docId, data) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(data.timeCasa)}</td>
+        <td>${escapeHtml(data.timeFora)}</td>
+        <td>${formatDataHora(data.dataHora)}</td>
+        <td>
+          <input type="number" min="0" class="placar-input" data-casa>
+          x
+          <input type="number" min="0" class="placar-input" data-fora>
+        </td>
+        <td><button type="button" class="save-resultado-btn">Salvar resultado</button></td>
+      `;
+      const btn = tr.querySelector(".save-resultado-btn");
+      const inputCasa = tr.querySelector("[data-casa]");
+      const inputFora = tr.querySelector("[data-fora]");
+
+      btn.addEventListener("click", async () => {
+        const placarCasa = parseInt(inputCasa.value, 10);
+        const placarFora = parseInt(inputFora.value, 10);
+
+        if (isNaN(placarCasa) || isNaN(placarFora)) {
+          showGlobalMessage("Preencha o placar dos dois times.", "error");
+          return;
+        }
+
+        btn.disabled = true;
+        try {
+          await salvarResultadoJogo(docId, placarCasa, placarFora);
+          showGlobalMessage("Resultado salvo e pontos calculados com sucesso.", "success");
+          loadJogos();
+          loadResultados();
+        } catch (err) {
+          console.error(err);
+          showGlobalMessage("Erro ao salvar resultado: " + err.message, "error");
+          btn.disabled = false;
+        }
+      });
+
+      return tr;
+    }
+
+    function criarLinhaResultadoLancado(docId, data, editing) {
+      const tr = document.createElement("tr");
+
+      if (!editing) {
         tr.innerHTML = `
           <td>${escapeHtml(data.timeCasa)}</td>
           <td>${escapeHtml(data.timeFora)}</td>
           <td>${formatDataHora(data.dataHora)}</td>
-          <td>
-            <input type="number" min="0" class="placar-input" data-casa>
-            x
-            <input type="number" min="0" class="placar-input" data-fora>
-          </td>
-          <td><button type="button" class="save-resultado-btn">Salvar resultado</button></td>
+          <td>${data.placarCasa} x ${data.placarFora}</td>
+          <td><button type="button" class="edit-resultado-btn">Corrigir</button></td>
         `;
-        const btn = tr.querySelector(".save-resultado-btn");
-        const inputCasa = tr.querySelector("[data-casa]");
-        const inputFora = tr.querySelector("[data-fora]");
-
-        btn.addEventListener("click", async () => {
-          const placarCasa = parseInt(inputCasa.value, 10);
-          const placarFora = parseInt(inputFora.value, 10);
-
-          if (isNaN(placarCasa) || isNaN(placarFora)) {
-            showGlobalMessage("Preencha o placar dos dois times.", "error");
-            return;
-          }
-
-          try {
-            await updateDoc(doc(db, "jogos", docSnap.id), {
-              placarCasa,
-              placarFora,
-              finalizado: true
-            });
-
-            // Calcula e grava a pontuação de cada palpite feito para esse jogo
-            const palpitesRef = collection(db, "palpites");
-            const palpitesQuery = query(palpitesRef, where("gameId", "==", docSnap.id));
-            const palpitesSnap = await getDocs(palpitesQuery);
-
-            await Promise.all(palpitesSnap.docs.map((p) => {
-              const palpite = p.data();
-              const resultado = calcularPontuacaoPalpite(
-                { casa: placarCasa, fora: placarFora },
-                { casa: palpite.placarCasa, fora: palpite.placarFora }
-              );
-              return updateDoc(p.ref, resultado);
-            }));
-
-            showGlobalMessage("Resultado salvo e pontos calculados com sucesso.", "success");
-            loadJogos();
-            loadResultadosPendentes();
-          } catch (err) {
-            console.error(err);
-            showGlobalMessage("Erro ao salvar resultado: " + err.message, "error");
-          }
+        tr.querySelector(".edit-resultado-btn").addEventListener("click", () => {
+          tr.replaceWith(criarLinhaResultadoLancado(docId, data, true));
         });
+        return tr;
+      }
 
-        listaResultados.appendChild(tr);
+      tr.innerHTML = `
+        <td>${escapeHtml(data.timeCasa)}</td>
+        <td>${escapeHtml(data.timeFora)}</td>
+        <td>${formatDataHora(data.dataHora)}</td>
+        <td>
+          <input type="number" min="0" class="placar-input" data-casa value="${data.placarCasa}">
+          x
+          <input type="number" min="0" class="placar-input" data-fora value="${data.placarFora}">
+        </td>
+        <td>
+          <button type="button" class="save-edit-btn">Salvar</button>
+          <button type="button" class="cancel-edit-btn">Cancelar</button>
+        </td>
+      `;
+      const inputCasa = tr.querySelector("[data-casa]");
+      const inputFora = tr.querySelector("[data-fora]");
+      const saveBtn = tr.querySelector(".save-edit-btn");
+      const cancelBtn = tr.querySelector(".cancel-edit-btn");
+
+      cancelBtn.addEventListener("click", () => {
+        tr.replaceWith(criarLinhaResultadoLancado(docId, data, false));
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        const placarCasa = parseInt(inputCasa.value, 10);
+        const placarFora = parseInt(inputFora.value, 10);
+
+        if (isNaN(placarCasa) || isNaN(placarFora)) {
+          showGlobalMessage("Preencha o placar dos dois times.", "error");
+          return;
+        }
+
+        saveBtn.disabled = true;
+        try {
+          await salvarResultadoJogo(docId, placarCasa, placarFora);
+          showGlobalMessage("Resultado corrigido e pontos recalculados com sucesso.", "success");
+          loadJogos();
+          loadResultados();
+        } catch (err) {
+          console.error(err);
+          showGlobalMessage("Erro ao corrigir resultado: " + err.message, "error");
+          saveBtn.disabled = false;
+        }
+      });
+
+      return tr;
+    }
+
+    async function loadResultados() {
+      const snapshot = await getDocs(collection(db, "jogos"));
+      const docsOrdenados = [...snapshot.docs].sort(
+        (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
+      );
+
+      const pendentes = docsOrdenados.filter((d) => !d.data().finalizado);
+      const lancados = docsOrdenados.filter((d) => d.data().finalizado).reverse();
+
+      listaResultadosPendentes.innerHTML = "";
+      listaResultadosLancados.innerHTML = "";
+      resultadosPendentesEmptyMsg.style.display = pendentes.length === 0 ? "block" : "none";
+      resultadosLancadosEmptyMsg.style.display = lancados.length === 0 ? "block" : "none";
+      contagemResultadosPendentes.textContent = `(${pendentes.length})`;
+      contagemResultadosLancados.textContent = `(${lancados.length})`;
+
+      pendentes.forEach((docSnap) => {
+        listaResultadosPendentes.appendChild(criarLinhaResultadoPendente(docSnap.id, docSnap.data()));
+      });
+      lancados.forEach((docSnap) => {
+        listaResultadosLancados.appendChild(criarLinhaResultadoLancado(docSnap.id, docSnap.data(), false));
       });
     }
+
+    // ---------- Expiração de sessão por inatividade ----------
+    const TEMPO_INATIVIDADE_MS = 60 * 60 * 1000; // 1 hora
+    let inatividadeTimer = null;
+
+    function reiniciarTimerInatividade() {
+      if (inatividadeTimer) clearTimeout(inatividadeTimer);
+      inatividadeTimer = setTimeout(async () => {
+        await signOut(auth);
+        window.location.href = "index.html?sessaoExpirada=1";
+      }, TEMPO_INATIVIDADE_MS);
+    }
+
+    ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach((evt) => {
+      document.addEventListener(evt, reiniciarTimerInatividade, { passive: true });
+    });
+
+    reiniciarTimerInatividade();
   </script>
 
 </body>

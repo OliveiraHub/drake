@@ -887,6 +887,24 @@
       window.location.href = "index.html";
     });
 
+    // ---------- Expiração de sessão por inatividade ----------
+    const TEMPO_INATIVIDADE_MS = 60 * 60 * 1000; // 1 hora
+    let inatividadeTimer = null;
+
+    function reiniciarTimerInatividade() {
+      if (inatividadeTimer) clearTimeout(inatividadeTimer);
+      inatividadeTimer = setTimeout(async () => {
+        await signOut(auth);
+        window.location.href = "index.html?sessaoExpirada=1";
+      }, TEMPO_INATIVIDADE_MS);
+    }
+
+    ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach((evt) => {
+      document.addEventListener(evt, reiniciarTimerInatividade, { passive: true });
+    });
+
+    reiniciarTimerInatividade();
+
     // ---------- Tabs ----------
     document.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
