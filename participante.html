@@ -814,8 +814,7 @@
     // ---------- Participantes (nomes por uid) ----------
     async function loadParticipantesNomes() {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("role", "==", "participante"));
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(usersRef);
       const map = new Map();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
@@ -1101,8 +1100,7 @@
     // ---------- Ranking (mesma lógica de ranking.html) ----------
     async function carregarRanking() {
       const usersRef = collection(db, "users");
-      const participantesQuery = query(usersRef, where("role", "==", "participante"));
-      const participantesSnap = await getDocs(participantesQuery);
+      const participantesSnap = await getDocs(usersRef);
 
       const participantesPorUid = new Map();
       participantesSnap.forEach((docSnap) => {

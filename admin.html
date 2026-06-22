@@ -233,6 +233,7 @@
     font-family: inherit;
   }
   .edit-participante-btn,
+  .edit-jogo-btn,
   .save-edit-btn {
     padding: 6px 14px;
     border: none;
@@ -246,6 +247,7 @@
     margin-right: 6px;
   }
   .edit-participante-btn:hover,
+  .edit-jogo-btn:hover,
   .save-edit-btn:hover { background: #2adde6; }
   .cancel-edit-btn {
     padding: 6px 14px;
@@ -916,6 +918,122 @@
       return isNaN(ms) ? 0 : ms;
     }
 
+    function toDatetimeLocalValue(value) {
+      const dt = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      if (isNaN(dt.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    }
+
+    function criarLinhaJogo(docId, data, editing) {
+      const tr = document.createElement("tr");
+      const placar = data.finalizado
+        ? `${data.placarCasa} x ${data.placarFora}`
+        : "Pendente";
+
+      if (!editing) {
+        tr.innerHTML = `
+          <td><input type="checkbox" class="jogo-checkbox" data-id="${docId}"></td>
+          <td>${escapeHtml(data.timeCasa)}</td>
+          <td>${escapeHtml(data.timeFora)}</td>
+          <td>${formatDataHora(data.dataHora)}</td>
+          <td>${placar}</td>
+          <td>
+            <button type="button" class="edit-jogo-btn">Editar</button>
+            <button type="button" class="delete-jogo-btn">Excluir</button>
+          </td>
+        `;
+
+        tr.querySelector(".edit-jogo-btn").addEventListener("click", () => {
+          tr.replaceWith(criarLinhaJogo(docId, data, true));
+        });
+
+        const deleteBtn = tr.querySelector(".delete-jogo-btn");
+        deleteBtn.addEventListener("click", async () => {
+          const confirmado = confirm(
+            `Excluir o jogo ${data.timeCasa} x ${data.timeFora}? Os palpites já feitos para esse jogo também serão excluídos. Essa ação não pode ser desfeita.`
+          );
+          if (!confirmado) return;
+
+          deleteBtn.disabled = true;
+          try {
+            const palpitesRef = collection(db, "palpites");
+            const palpitesQuery = query(palpitesRef, where("gameId", "==", docId));
+            const palpitesSnap = await getDocs(palpitesQuery);
+            await Promise.all(palpitesSnap.docs.map((p) => deleteDoc(p.ref)));
+
+            await deleteDoc(doc(db, "jogos", docId));
+            showGlobalMessage("Jogo e palpites relacionados excluídos com sucesso.", "success");
+            loadJogos();
+            loadResultadosPendentes();
+          } catch (err) {
+            console.error(err);
+            showGlobalMessage("Erro ao excluir jogo: " + err.message, "error");
+            deleteBtn.disabled = false;
+          }
+        });
+
+        return tr;
+      }
+
+      tr.innerHTML = `
+        <td></td>
+        <td><input type="text" class="edit-input" data-campo="timeCasa" value="${escapeHtml(data.timeCasa)}"></td>
+        <td><input type="text" class="edit-input" data-campo="timeFora" value="${escapeHtml(data.timeFora)}"></td>
+        <td><input type="datetime-local" class="edit-input" data-campo="dataHora" value="${toDatetimeLocalValue(data.dataHora)}"></td>
+        <td>${placar}</td>
+        <td>
+          <button type="button" class="save-edit-btn">Salvar</button>
+          <button type="button" class="cancel-edit-btn">Cancelar</button>
+        </td>
+      `;
+
+      const inputCasa = tr.querySelector('[data-campo="timeCasa"]');
+      const inputFora = tr.querySelector('[data-campo="timeFora"]');
+      const inputDataHora = tr.querySelector('[data-campo="dataHora"]');
+      const saveBtn = tr.querySelector(".save-edit-btn");
+      const cancelBtn = tr.querySelector(".cancel-edit-btn");
+
+      cancelBtn.addEventListener("click", () => {
+        tr.replaceWith(criarLinhaJogo(docId, data, false));
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        const timeCasa = inputCasa.value.trim();
+        const timeFora = inputFora.value.trim();
+        const dataHoraValor = inputDataHora.value;
+
+        if (!timeCasa || !timeFora || !dataHoraValor) {
+          showGlobalMessage("Preencha time da casa, visitante e data/hora.", "error");
+          return;
+        }
+
+        const dataHoraDate = new Date(dataHoraValor);
+        if (isNaN(dataHoraDate.getTime())) {
+          showGlobalMessage("Data/hora inválida.", "error");
+          return;
+        }
+
+        saveBtn.disabled = true;
+        try {
+          await updateDoc(doc(db, "jogos", docId), {
+            timeCasa,
+            timeFora,
+            dataHora: Timestamp.fromDate(dataHoraDate)
+          });
+          showGlobalMessage("Jogo atualizado com sucesso.", "success");
+          loadJogos();
+          loadResultadosPendentes();
+        } catch (err) {
+          console.error(err);
+          showGlobalMessage("Erro ao atualizar jogo: " + err.message, "error");
+          saveBtn.disabled = false;
+        }
+      });
+
+      return tr;
+    }
+
     async function loadJogos() {
       const jogosRef = collection(db, "jogos");
       let snapshot;
@@ -936,46 +1054,7 @@
       if (selecionarTodosJogosCb) selecionarTodosJogosCb.checked = false;
 
       docsOrdenados.forEach((docSnap) => {
-        const data = docSnap.data();
-        const placar = data.finalizado
-          ? `${data.placarCasa} x ${data.placarFora}`
-          : "Pendente";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><input type="checkbox" class="jogo-checkbox" data-id="${docSnap.id}"></td>
-          <td>${escapeHtml(data.timeCasa)}</td>
-          <td>${escapeHtml(data.timeFora)}</td>
-          <td>${formatDataHora(data.dataHora)}</td>
-          <td>${placar}</td>
-          <td><button type="button" class="delete-jogo-btn">Excluir</button></td>
-        `;
-
-        const deleteBtn = tr.querySelector(".delete-jogo-btn");
-        deleteBtn.addEventListener("click", async () => {
-          const confirmado = confirm(
-            `Excluir o jogo ${data.timeCasa} x ${data.timeFora}? Os palpites já feitos para esse jogo também serão excluídos. Essa ação não pode ser desfeita.`
-          );
-          if (!confirmado) return;
-
-          deleteBtn.disabled = true;
-          try {
-            const palpitesRef = collection(db, "palpites");
-            const palpitesQuery = query(palpitesRef, where("gameId", "==", docSnap.id));
-            const palpitesSnap = await getDocs(palpitesQuery);
-            await Promise.all(palpitesSnap.docs.map((p) => deleteDoc(p.ref)));
-
-            await deleteDoc(doc(db, "jogos", docSnap.id));
-            showGlobalMessage("Jogo e palpites relacionados excluídos com sucesso.", "success");
-            loadJogos();
-            loadResultadosPendentes();
-          } catch (err) {
-            console.error(err);
-            showGlobalMessage("Erro ao excluir jogo: " + err.message, "error");
-            deleteBtn.disabled = false;
-          }
-        });
-
-        listaJogos.appendChild(tr);
+        listaJogos.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
       });
     }
 
