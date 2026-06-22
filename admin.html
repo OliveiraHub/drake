@@ -235,6 +235,7 @@
   }
   .edit-participante-btn,
   .edit-jogo-btn,
+  .edit-palpite-btn,
   .save-edit-btn {
     padding: 6px 14px;
     border: none;
@@ -249,6 +250,7 @@
   }
   .edit-participante-btn:hover,
   .edit-jogo-btn:hover,
+  .edit-palpite-btn:hover,
   .save-edit-btn:hover { background: #2adde6; }
   .cancel-edit-btn {
     padding: 6px 14px;
@@ -1611,7 +1613,7 @@
       filtroPalpitesJogo.value = jogoAtual;
     }
 
-    function criarLinhaPalpite(palpiteId, data) {
+    function criarLinhaPalpite(palpiteId, data, editing) {
       const jogo = jogosMap[data.gameId];
       const nomeParticipante = participantesMap[data.userId] || "(participante removido)";
       const descJogo = jogo ? `${escapeHtml(jogo.timeCasa)} x ${escapeHtml(jogo.timeFora)}` : "(jogo removido)";
@@ -1619,32 +1621,103 @@
       const pontos = typeof data.pontos === "number" ? data.pontos : "-";
 
       const tr = document.createElement("tr");
+
+      if (!editing) {
+        tr.innerHTML = `
+          <td>${escapeHtml(nomeParticipante)}</td>
+          <td>${descJogo}</td>
+          <td>${dataJogo}</td>
+          <td>${data.placarCasa} x ${data.placarFora}</td>
+          <td>${pontos}</td>
+          <td>
+            <button type="button" class="edit-palpite-btn">Editar</button>
+            <button type="button" class="delete-palpite-btn">Excluir</button>
+          </td>
+        `;
+
+        tr.querySelector(".edit-palpite-btn").addEventListener("click", () => {
+          tr.replaceWith(criarLinhaPalpite(palpiteId, data, true));
+        });
+
+        const deleteBtn = tr.querySelector(".delete-palpite-btn");
+        deleteBtn.addEventListener("click", async () => {
+          const confirmado = confirm(
+            `Excluir o palpite de ${nomeParticipante} para ${descJogo}? Essa ação não pode ser desfeita.`
+          );
+          if (!confirmado) return;
+
+          deleteBtn.disabled = true;
+          try {
+            await deleteDoc(doc(db, "palpites", palpiteId));
+            showGlobalMessage("Palpite excluído com sucesso.", "success");
+            palpitesCache = palpitesCache.filter((p) => p.id !== palpiteId);
+            renderPalpites();
+          } catch (err) {
+            console.error(err);
+            showGlobalMessage("Erro ao excluir palpite: " + err.message, "error");
+            deleteBtn.disabled = false;
+          }
+        });
+
+        return tr;
+      }
+
       tr.innerHTML = `
         <td>${escapeHtml(nomeParticipante)}</td>
         <td>${descJogo}</td>
         <td>${dataJogo}</td>
-        <td>${data.placarCasa} x ${data.placarFora}</td>
+        <td>
+          <input type="number" min="0" class="placar-input" data-placar-casa value="${data.placarCasa}">
+          x
+          <input type="number" min="0" class="placar-input" data-placar-fora value="${data.placarFora}">
+        </td>
         <td>${pontos}</td>
-        <td><button type="button" class="delete-palpite-btn">Excluir</button></td>
+        <td>
+          <button type="button" class="save-edit-btn">Salvar</button>
+          <button type="button" class="cancel-edit-btn">Cancelar</button>
+        </td>
       `;
 
-      const deleteBtn = tr.querySelector(".delete-palpite-btn");
-      deleteBtn.addEventListener("click", async () => {
-        const confirmado = confirm(
-          `Excluir o palpite de ${nomeParticipante} para ${descJogo}? Essa ação não pode ser desfeita.`
-        );
-        if (!confirmado) return;
+      const inputPlacarCasa = tr.querySelector("[data-placar-casa]");
+      const inputPlacarFora = tr.querySelector("[data-placar-fora]");
+      const saveBtn = tr.querySelector(".save-edit-btn");
+      const cancelBtn = tr.querySelector(".cancel-edit-btn");
 
-        deleteBtn.disabled = true;
+      cancelBtn.addEventListener("click", () => {
+        tr.replaceWith(criarLinhaPalpite(palpiteId, data, false));
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        const placarCasa = parseInt(inputPlacarCasa.value, 10);
+        const placarFora = parseInt(inputPlacarFora.value, 10);
+
+        if (isNaN(placarCasa) || isNaN(placarFora)) {
+          showGlobalMessage("Preencha o placar dos dois times.", "error");
+          return;
+        }
+
+        saveBtn.disabled = true;
         try {
-          await deleteDoc(doc(db, "palpites", palpiteId));
-          showGlobalMessage("Palpite excluído com sucesso.", "success");
-          palpitesCache = palpitesCache.filter((p) => p.id !== palpiteId);
-          renderPalpites();
+          const updateData = { placarCasa, placarFora };
+
+          // Se o jogo já tem resultado, recalcula os pontos desse palpite com o novo placar.
+          if (jogo && jogo.finalizado) {
+            Object.assign(
+              updateData,
+              calcularPontuacaoPalpite(
+                { casa: jogo.placarCasa, fora: jogo.placarFora },
+                { casa: placarCasa, fora: placarFora }
+              )
+            );
+          }
+
+          await updateDoc(doc(db, "palpites", palpiteId), updateData);
+          showGlobalMessage("Palpite atualizado com sucesso.", "success");
+          loadPalpites();
         } catch (err) {
           console.error(err);
-          showGlobalMessage("Erro ao excluir palpite: " + err.message, "error");
-          deleteBtn.disabled = false;
+          showGlobalMessage("Erro ao atualizar palpite: " + err.message, "error");
+          saveBtn.disabled = false;
         }
       });
 
