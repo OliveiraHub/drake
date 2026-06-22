@@ -235,7 +235,6 @@
   }
   .edit-participante-btn,
   .edit-jogo-btn,
-  .edit-resultado-btn,
   .save-edit-btn {
     padding: 6px 14px;
     border: none;
@@ -250,7 +249,6 @@
   }
   .edit-participante-btn:hover,
   .edit-jogo-btn:hover,
-  .edit-resultado-btn:hover,
   .save-edit-btn:hover { background: #2adde6; }
   .cancel-edit-btn {
     padding: 6px 14px;
@@ -274,20 +272,6 @@
     text-align: center;
     font-size: 14px;
     font-family: inherit;
-  }
-  .save-resultado-btn {
-    padding: 6px 14px;
-    border: none;
-    border-radius: 6px;
-    background: var(--cyan);
-    color: #08080f;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .save-resultado-btn:hover {
-    background: #2adde6;
   }
   .delete-jogo-btn,
   .delete-participante-btn {
@@ -420,7 +404,6 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="participantes">Participantes</button>
       <button class="tab-btn" data-tab="jogos">Jogos</button>
-      <button class="tab-btn" data-tab="resultados">Resultados</button>
       <button class="tab-btn" data-tab="conta">Minha Conta</button>
     </div>
 
@@ -503,8 +486,8 @@
           </div>
         </div>
 
-        <details class="jogos-secao" id="secaoJogosFuturos" open>
-          <summary>Jogos a acontecer <span class="contagem" id="contagemJogosFuturos"></span></summary>
+        <details class="jogos-secao" id="secaoJogosProximos" open>
+          <summary>Próximos jogos <span class="contagem" id="contagemJogosProximos"></span></summary>
           <div class="jogos-secao-conteudo">
             <div class="table-scroll">
               <table>
@@ -514,15 +497,15 @@
                     <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
                   </tr>
                 </thead>
-                <tbody id="listaJogosFuturos"></tbody>
+                <tbody id="listaJogosProximos"></tbody>
               </table>
             </div>
-            <div class="empty-msg" id="jogosFuturosEmptyMsg" style="display:none;">Nenhum jogo a acontecer.</div>
+            <div class="empty-msg" id="jogosProximosEmptyMsg" style="display:none;">Nenhum jogo a acontecer.</div>
           </div>
         </details>
 
-        <details class="jogos-secao" id="secaoJogosPassados">
-          <summary>Jogos já realizados <span class="contagem" id="contagemJogosPassados"></span></summary>
+        <details class="jogos-secao" id="secaoJogosAguardando" open>
+          <summary>Aguardando resultado <span class="contagem" id="contagemJogosAguardando"></span></summary>
           <div class="jogos-secao-conteudo">
             <div class="table-scroll">
               <table>
@@ -532,43 +515,28 @@
                     <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
                   </tr>
                 </thead>
-                <tbody id="listaJogosPassados"></tbody>
+                <tbody id="listaJogosAguardando"></tbody>
               </table>
             </div>
-            <div class="empty-msg" id="jogosPassadosEmptyMsg" style="display:none;">Nenhum jogo já realizado.</div>
+            <div class="empty-msg" id="jogosAguardandoEmptyMsg" style="display:none;">Nenhum jogo aguardando resultado.</div>
           </div>
         </details>
-      </div>
 
-      <!-- RESULTADOS -->
-      <div class="tab-panel" id="panel-resultados">
-        <details class="jogos-secao" id="secaoResultadosPendentes" open>
-          <summary>Resultados pendentes <span class="contagem" id="contagemResultadosPendentes"></span></summary>
+        <details class="jogos-secao" id="secaoJogosFinalizados">
+          <summary>Finalizados <span class="contagem" id="contagemJogosFinalizados"></span></summary>
           <div class="jogos-secao-conteudo">
             <div class="table-scroll">
               <table>
                 <thead>
-                  <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
+                  <tr>
+                    <th></th>
+                    <th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th>
+                  </tr>
                 </thead>
-                <tbody id="listaResultadosPendentes"></tbody>
+                <tbody id="listaJogosFinalizados"></tbody>
               </table>
             </div>
-            <div class="empty-msg" id="resultadosPendentesEmptyMsg" style="display:none;">Nenhum jogo pendente de resultado.</div>
-          </div>
-        </details>
-
-        <details class="jogos-secao" id="secaoResultadosLancados">
-          <summary>Resultados já lançados <span class="contagem" id="contagemResultadosLancados"></span></summary>
-          <div class="jogos-secao-conteudo">
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr><th>Casa</th><th>Visitante</th><th>Data/Hora</th><th>Placar</th><th></th></tr>
-                </thead>
-                <tbody id="listaResultadosLancados"></tbody>
-              </table>
-            </div>
-            <div class="empty-msg" id="resultadosLancadosEmptyMsg" style="display:none;">Nenhum resultado lançado ainda.</div>
+            <div class="empty-msg" id="jogosFinalizadosEmptyMsg" style="display:none;">Nenhum jogo finalizado ainda.</div>
           </div>
         </details>
       </div>
@@ -735,7 +703,6 @@
 
       loadParticipantes();
       loadJogos();
-      loadResultados();
     });
 
     // ---------- Meus dados (admin) ----------
@@ -1051,12 +1018,15 @@
 
     // ---------- Jogos ----------
     const formJogo = document.getElementById("formJogo");
-    const listaJogosFuturos = document.getElementById("listaJogosFuturos");
-    const listaJogosPassados = document.getElementById("listaJogosPassados");
-    const jogosFuturosEmptyMsg = document.getElementById("jogosFuturosEmptyMsg");
-    const jogosPassadosEmptyMsg = document.getElementById("jogosPassadosEmptyMsg");
-    const contagemJogosFuturos = document.getElementById("contagemJogosFuturos");
-    const contagemJogosPassados = document.getElementById("contagemJogosPassados");
+    const listaJogosProximos = document.getElementById("listaJogosProximos");
+    const listaJogosAguardando = document.getElementById("listaJogosAguardando");
+    const listaJogosFinalizados = document.getElementById("listaJogosFinalizados");
+    const jogosProximosEmptyMsg = document.getElementById("jogosProximosEmptyMsg");
+    const jogosAguardandoEmptyMsg = document.getElementById("jogosAguardandoEmptyMsg");
+    const jogosFinalizadosEmptyMsg = document.getElementById("jogosFinalizadosEmptyMsg");
+    const contagemJogosProximos = document.getElementById("contagemJogosProximos");
+    const contagemJogosAguardando = document.getElementById("contagemJogosAguardando");
+    const contagemJogosFinalizados = document.getElementById("contagemJogosFinalizados");
 
     function formatDataHora(value) {
       if (!value) return "-";
@@ -1076,6 +1046,34 @@
       if (isNaN(dt.getTime())) return "";
       const pad = (n) => String(n).padStart(2, "0");
       return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    }
+
+    async function salvarJogo(docId, { timeCasa, timeFora, dataHora, placarCasa, placarFora }) {
+      const updateData = { timeCasa, timeFora, dataHora };
+      const temPlacar = placarCasa !== null && placarFora !== null;
+      if (temPlacar) {
+        updateData.placarCasa = placarCasa;
+        updateData.placarFora = placarFora;
+        updateData.finalizado = true;
+      }
+
+      await updateDoc(doc(db, "jogos", docId), updateData);
+
+      if (temPlacar) {
+        // Calcula e grava a pontuação de cada palpite feito para esse jogo
+        const palpitesRef = collection(db, "palpites");
+        const palpitesQuery = query(palpitesRef, where("gameId", "==", docId));
+        const palpitesSnap = await getDocs(palpitesQuery);
+
+        await Promise.all(palpitesSnap.docs.map((p) => {
+          const palpite = p.data();
+          const resultado = calcularPontuacaoPalpite(
+            { casa: placarCasa, fora: placarFora },
+            { casa: palpite.placarCasa, fora: palpite.placarFora }
+          );
+          return updateDoc(p.ref, resultado);
+        }));
+      }
     }
 
     function criarLinhaJogo(docId, data, editing) {
@@ -1118,7 +1116,6 @@
             await deleteDoc(doc(db, "jogos", docId));
             showGlobalMessage("Jogo e palpites relacionados excluídos com sucesso.", "success");
             loadJogos();
-            loadResultados();
           } catch (err) {
             console.error(err);
             showGlobalMessage("Erro ao excluir jogo: " + err.message, "error");
@@ -1134,7 +1131,11 @@
         <td><input type="text" class="edit-input" data-campo="timeCasa" value="${escapeHtml(data.timeCasa)}"></td>
         <td><input type="text" class="edit-input" data-campo="timeFora" value="${escapeHtml(data.timeFora)}"></td>
         <td><input type="datetime-local" class="edit-input" data-campo="dataHora" value="${toDatetimeLocalValue(data.dataHora)}"></td>
-        <td>${placar}</td>
+        <td>
+          <input type="number" min="0" class="placar-input" data-placar-casa value="${data.finalizado ? data.placarCasa : ""}">
+          x
+          <input type="number" min="0" class="placar-input" data-placar-fora value="${data.finalizado ? data.placarFora : ""}">
+        </td>
         <td>
           <button type="button" class="save-edit-btn">Salvar</button>
           <button type="button" class="cancel-edit-btn">Cancelar</button>
@@ -1144,6 +1145,8 @@
       const inputCasa = tr.querySelector('[data-campo="timeCasa"]');
       const inputFora = tr.querySelector('[data-campo="timeFora"]');
       const inputDataHora = tr.querySelector('[data-campo="dataHora"]');
+      const inputPlacarCasa = tr.querySelector('[data-placar-casa]');
+      const inputPlacarFora = tr.querySelector('[data-placar-fora]');
       const saveBtn = tr.querySelector(".save-edit-btn");
       const cancelBtn = tr.querySelector(".cancel-edit-btn");
 
@@ -1167,16 +1170,41 @@
           return;
         }
 
+        const placarCasaVal = inputPlacarCasa.value;
+        const placarForaVal = inputPlacarFora.value;
+        const algumPlacarPreenchido = placarCasaVal !== "" || placarForaVal !== "";
+        const ambosPlacaresPreenchidos = placarCasaVal !== "" && placarForaVal !== "";
+
+        if (algumPlacarPreenchido && !ambosPlacaresPreenchidos) {
+          showGlobalMessage("Preencha o placar dos dois times ou deixe os dois em branco.", "error");
+          return;
+        }
+
+        let placarCasa = null;
+        let placarFora = null;
+        if (ambosPlacaresPreenchidos) {
+          placarCasa = parseInt(placarCasaVal, 10);
+          placarFora = parseInt(placarForaVal, 10);
+          if (isNaN(placarCasa) || isNaN(placarFora)) {
+            showGlobalMessage("Placar inválido.", "error");
+            return;
+          }
+        }
+
         saveBtn.disabled = true;
         try {
-          await updateDoc(doc(db, "jogos", docId), {
+          await salvarJogo(docId, {
             timeCasa,
             timeFora,
-            dataHora: Timestamp.fromDate(dataHoraDate)
+            dataHora: Timestamp.fromDate(dataHoraDate),
+            placarCasa,
+            placarFora
           });
-          showGlobalMessage("Jogo atualizado com sucesso.", "success");
+          showGlobalMessage(
+            ambosPlacaresPreenchidos ? "Jogo e resultado salvos com sucesso." : "Jogo atualizado com sucesso.",
+            "success"
+          );
           loadJogos();
-          loadResultados();
         } catch (err) {
           console.error(err);
           showGlobalMessage("Erro ao atualizar jogo: " + err.message, "error");
@@ -1202,24 +1230,35 @@
       );
 
       const agoraMs = Date.now();
-      const docsFuturos = docsOrdenados.filter((docSnap) => dataHoraMs(docSnap.data().dataHora) >= agoraMs);
-      const docsPassados = docsOrdenados.filter((docSnap) => dataHoraMs(docSnap.data().dataHora) < agoraMs).reverse();
+      const docsProximos = docsOrdenados.filter(
+        (docSnap) => !docSnap.data().finalizado && dataHoraMs(docSnap.data().dataHora) >= agoraMs
+      );
+      const docsAguardando = docsOrdenados
+        .filter((docSnap) => !docSnap.data().finalizado && dataHoraMs(docSnap.data().dataHora) < agoraMs)
+        .reverse();
+      const docsFinalizados = docsOrdenados.filter((docSnap) => docSnap.data().finalizado).reverse();
 
-      listaJogosFuturos.innerHTML = "";
-      listaJogosPassados.innerHTML = "";
-      jogosFuturosEmptyMsg.style.display = docsFuturos.length === 0 ? "block" : "none";
-      jogosPassadosEmptyMsg.style.display = docsPassados.length === 0 ? "block" : "none";
-      contagemJogosFuturos.textContent = `(${docsFuturos.length})`;
-      contagemJogosPassados.textContent = `(${docsPassados.length})`;
+      listaJogosProximos.innerHTML = "";
+      listaJogosAguardando.innerHTML = "";
+      listaJogosFinalizados.innerHTML = "";
+      jogosProximosEmptyMsg.style.display = docsProximos.length === 0 ? "block" : "none";
+      jogosAguardandoEmptyMsg.style.display = docsAguardando.length === 0 ? "block" : "none";
+      jogosFinalizadosEmptyMsg.style.display = docsFinalizados.length === 0 ? "block" : "none";
+      contagemJogosProximos.textContent = `(${docsProximos.length})`;
+      contagemJogosAguardando.textContent = `(${docsAguardando.length})`;
+      contagemJogosFinalizados.textContent = `(${docsFinalizados.length})`;
 
       const selecionarTodosJogosCb = document.getElementById("selecionarTodosJogos");
       if (selecionarTodosJogosCb) selecionarTodosJogosCb.checked = false;
 
-      docsFuturos.forEach((docSnap) => {
-        listaJogosFuturos.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
+      docsProximos.forEach((docSnap) => {
+        listaJogosProximos.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
       });
-      docsPassados.forEach((docSnap) => {
-        listaJogosPassados.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
+      docsAguardando.forEach((docSnap) => {
+        listaJogosAguardando.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
+      });
+      docsFinalizados.forEach((docSnap) => {
+        listaJogosFinalizados.appendChild(criarLinhaJogo(docSnap.id, docSnap.data(), false));
       });
     }
 
@@ -1256,7 +1295,6 @@
 
         showGlobalMessage(`${idsSelecionados.length} jogo(s) e seus palpites foram excluídos.`, "success");
         loadJogos();
-        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao excluir jogos selecionados: " + err.message, "error");
@@ -1286,7 +1324,6 @@
 
         showGlobalMessage(`${jogosSnap.size} jogo(s) e seus palpites foram excluídos.`, "success");
         loadJogos();
-        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao excluir jogos: " + err.message, "error");
@@ -1419,7 +1456,6 @@
         showGlobalMessage(msg, "success");
         importJogosInput.value = "";
         loadJogos();
-        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao importar planilha: " + err.message, "error");
@@ -1454,173 +1490,11 @@
         formJogo.reset();
         showGlobalMessage("Jogo cadastrado com sucesso.", "success");
         loadJogos();
-        loadResultados();
       } catch (err) {
         console.error(err);
         showGlobalMessage("Erro ao cadastrar jogo: " + err.message, "error");
       }
     });
-
-    // ---------- Resultados ----------
-    const listaResultadosPendentes = document.getElementById("listaResultadosPendentes");
-    const listaResultadosLancados = document.getElementById("listaResultadosLancados");
-    const resultadosPendentesEmptyMsg = document.getElementById("resultadosPendentesEmptyMsg");
-    const resultadosLancadosEmptyMsg = document.getElementById("resultadosLancadosEmptyMsg");
-    const contagemResultadosPendentes = document.getElementById("contagemResultadosPendentes");
-    const contagemResultadosLancados = document.getElementById("contagemResultadosLancados");
-
-    async function salvarResultadoJogo(docId, placarCasa, placarFora) {
-      await updateDoc(doc(db, "jogos", docId), {
-        placarCasa,
-        placarFora,
-        finalizado: true
-      });
-
-      // Calcula e grava a pontuação de cada palpite feito para esse jogo
-      const palpitesRef = collection(db, "palpites");
-      const palpitesQuery = query(palpitesRef, where("gameId", "==", docId));
-      const palpitesSnap = await getDocs(palpitesQuery);
-
-      await Promise.all(palpitesSnap.docs.map((p) => {
-        const palpite = p.data();
-        const resultado = calcularPontuacaoPalpite(
-          { casa: placarCasa, fora: placarFora },
-          { casa: palpite.placarCasa, fora: palpite.placarFora }
-        );
-        return updateDoc(p.ref, resultado);
-      }));
-    }
-
-    function criarLinhaResultadoPendente(docId, data) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(data.timeCasa)}</td>
-        <td>${escapeHtml(data.timeFora)}</td>
-        <td>${formatDataHora(data.dataHora)}</td>
-        <td>
-          <input type="number" min="0" class="placar-input" data-casa>
-          x
-          <input type="number" min="0" class="placar-input" data-fora>
-        </td>
-        <td><button type="button" class="save-resultado-btn">Salvar resultado</button></td>
-      `;
-      const btn = tr.querySelector(".save-resultado-btn");
-      const inputCasa = tr.querySelector("[data-casa]");
-      const inputFora = tr.querySelector("[data-fora]");
-
-      btn.addEventListener("click", async () => {
-        const placarCasa = parseInt(inputCasa.value, 10);
-        const placarFora = parseInt(inputFora.value, 10);
-
-        if (isNaN(placarCasa) || isNaN(placarFora)) {
-          showGlobalMessage("Preencha o placar dos dois times.", "error");
-          return;
-        }
-
-        btn.disabled = true;
-        try {
-          await salvarResultadoJogo(docId, placarCasa, placarFora);
-          showGlobalMessage("Resultado salvo e pontos calculados com sucesso.", "success");
-          loadJogos();
-          loadResultados();
-        } catch (err) {
-          console.error(err);
-          showGlobalMessage("Erro ao salvar resultado: " + err.message, "error");
-          btn.disabled = false;
-        }
-      });
-
-      return tr;
-    }
-
-    function criarLinhaResultadoLancado(docId, data, editing) {
-      const tr = document.createElement("tr");
-
-      if (!editing) {
-        tr.innerHTML = `
-          <td>${escapeHtml(data.timeCasa)}</td>
-          <td>${escapeHtml(data.timeFora)}</td>
-          <td>${formatDataHora(data.dataHora)}</td>
-          <td>${data.placarCasa} x ${data.placarFora}</td>
-          <td><button type="button" class="edit-resultado-btn">Corrigir</button></td>
-        `;
-        tr.querySelector(".edit-resultado-btn").addEventListener("click", () => {
-          tr.replaceWith(criarLinhaResultadoLancado(docId, data, true));
-        });
-        return tr;
-      }
-
-      tr.innerHTML = `
-        <td>${escapeHtml(data.timeCasa)}</td>
-        <td>${escapeHtml(data.timeFora)}</td>
-        <td>${formatDataHora(data.dataHora)}</td>
-        <td>
-          <input type="number" min="0" class="placar-input" data-casa value="${data.placarCasa}">
-          x
-          <input type="number" min="0" class="placar-input" data-fora value="${data.placarFora}">
-        </td>
-        <td>
-          <button type="button" class="save-edit-btn">Salvar</button>
-          <button type="button" class="cancel-edit-btn">Cancelar</button>
-        </td>
-      `;
-      const inputCasa = tr.querySelector("[data-casa]");
-      const inputFora = tr.querySelector("[data-fora]");
-      const saveBtn = tr.querySelector(".save-edit-btn");
-      const cancelBtn = tr.querySelector(".cancel-edit-btn");
-
-      cancelBtn.addEventListener("click", () => {
-        tr.replaceWith(criarLinhaResultadoLancado(docId, data, false));
-      });
-
-      saveBtn.addEventListener("click", async () => {
-        const placarCasa = parseInt(inputCasa.value, 10);
-        const placarFora = parseInt(inputFora.value, 10);
-
-        if (isNaN(placarCasa) || isNaN(placarFora)) {
-          showGlobalMessage("Preencha o placar dos dois times.", "error");
-          return;
-        }
-
-        saveBtn.disabled = true;
-        try {
-          await salvarResultadoJogo(docId, placarCasa, placarFora);
-          showGlobalMessage("Resultado corrigido e pontos recalculados com sucesso.", "success");
-          loadJogos();
-          loadResultados();
-        } catch (err) {
-          console.error(err);
-          showGlobalMessage("Erro ao corrigir resultado: " + err.message, "error");
-          saveBtn.disabled = false;
-        }
-      });
-
-      return tr;
-    }
-
-    async function loadResultados() {
-      const snapshot = await getDocs(collection(db, "jogos"));
-      const docsOrdenados = [...snapshot.docs].sort(
-        (a, b) => dataHoraMs(a.data().dataHora) - dataHoraMs(b.data().dataHora)
-      );
-
-      const pendentes = docsOrdenados.filter((d) => !d.data().finalizado);
-      const lancados = docsOrdenados.filter((d) => d.data().finalizado).reverse();
-
-      listaResultadosPendentes.innerHTML = "";
-      listaResultadosLancados.innerHTML = "";
-      resultadosPendentesEmptyMsg.style.display = pendentes.length === 0 ? "block" : "none";
-      resultadosLancadosEmptyMsg.style.display = lancados.length === 0 ? "block" : "none";
-      contagemResultadosPendentes.textContent = `(${pendentes.length})`;
-      contagemResultadosLancados.textContent = `(${lancados.length})`;
-
-      pendentes.forEach((docSnap) => {
-        listaResultadosPendentes.appendChild(criarLinhaResultadoPendente(docSnap.id, docSnap.data()));
-      });
-      lancados.forEach((docSnap) => {
-        listaResultadosLancados.appendChild(criarLinhaResultadoLancado(docSnap.id, docSnap.data(), false));
-      });
-    }
 
     // ---------- Expiração de sessão por inatividade ----------
     const TEMPO_INATIVIDADE_MS = 60 * 60 * 1000; // 1 hora
