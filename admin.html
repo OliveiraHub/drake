@@ -487,6 +487,17 @@
 
       <!-- MINHA CONTA -->
       <div class="tab-panel" id="panel-conta">
+        <div id="meusDadosCard">
+          <h3 style="margin-top:0;">Meus dados</h3>
+          <form class="inline-form" id="formMeuNome">
+            <div class="field">
+              <label for="meuNome">Nome</label>
+              <input type="text" id="meuNome" required>
+            </div>
+            <button type="submit">Salvar nome</button>
+          </form>
+        </div>
+
         <div id="minhaSenhaCard" style="display:none;">
           <h3 style="margin-top:0;">Minha senha de acesso</h3>
           <p id="minhaSenhaInfo" style="color:var(--text-muted); font-size:14px;"></p>
@@ -631,9 +642,40 @@
       marcarLinkAtivo();
       atualizarPainelMinhaSenha(user);
 
+      currentUserDocRef = userDocRef;
+      meuNomeInput.value = userDocSnap.data().nome || "";
+
       loadParticipantes();
       loadJogos();
       loadResultadosPendentes();
+    });
+
+    // ---------- Meus dados (admin) ----------
+    let currentUserDocRef = null;
+    const formMeuNome = document.getElementById("formMeuNome");
+    const meuNomeInput = document.getElementById("meuNome");
+
+    formMeuNome.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = meuNomeInput.value.trim();
+
+      if (!nome) {
+        showGlobalMessage("Preencha o nome.", "error");
+        return;
+      }
+
+      const submitBtn = formMeuNome.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      try {
+        await updateDoc(currentUserDocRef, { nome });
+        showGlobalMessage("Nome salvo com sucesso.", "success");
+        loadParticipantes();
+      } catch (err) {
+        console.error(err);
+        showGlobalMessage("Erro ao salvar nome: " + err.message, "error");
+      } finally {
+        submitBtn.disabled = false;
+      }
     });
 
     // ---------- Minha senha (admin) ----------
