@@ -274,7 +274,8 @@
     font-family: inherit;
   }
   .delete-jogo-btn,
-  .delete-participante-btn {
+  .delete-participante-btn,
+  .delete-palpite-btn {
     padding: 6px 14px;
     border: 1px solid #f87171;
     border-radius: 6px;
@@ -285,7 +286,8 @@
     font-family: inherit;
   }
   .delete-jogo-btn:hover,
-  .delete-participante-btn:hover {
+  .delete-participante-btn:hover,
+  .delete-palpite-btn:hover {
     background: rgba(248,113,113,0.12);
   }
   .empty-msg {
@@ -335,6 +337,26 @@
   .table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  #panel-palpites .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #panel-palpites .field label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  #panel-palpites select {
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    background: #1b1b32;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    min-width: 220px;
   }
 
   /* ---------- Mobile ---------- */
@@ -404,6 +426,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="participantes">Participantes</button>
       <button class="tab-btn" data-tab="jogos">Jogos</button>
+      <button class="tab-btn" data-tab="palpites">Palpites</button>
       <button class="tab-btn" data-tab="conta">Minha Conta</button>
     </div>
 
@@ -539,6 +562,36 @@
             <div class="empty-msg" id="jogosFinalizadosEmptyMsg" style="display:none;">Nenhum jogo finalizado ainda.</div>
           </div>
         </details>
+      </div>
+
+      <!-- PALPITES -->
+      <div class="tab-panel" id="panel-palpites">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:14px; margin-bottom:16px; flex-wrap:wrap;">
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <div class="field">
+              <label for="filtroPalpitesParticipante">Participante</label>
+              <select id="filtroPalpitesParticipante"></select>
+            </div>
+            <div class="field">
+              <label for="filtroPalpitesJogo">Jogo</label>
+              <select id="filtroPalpitesJogo"></select>
+            </div>
+          </div>
+          <button type="button" id="atualizarPalpitesBtn"
+            style="padding:9px 16px; border:none; border-radius:6px; background:var(--cyan); color:#08080f; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; height:38px;">
+            Atualizar lista
+          </button>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Participante</th><th>Jogo</th><th>Data/Hora</th><th>Placar apostado</th><th>Pontos</th><th></th></tr>
+            </thead>
+            <tbody id="listaPalpites"></tbody>
+          </table>
+        </div>
+        <div class="empty-msg" id="palpitesEmptyMsg" style="display:none;">Nenhum palpite encontrado.</div>
       </div>
 
       <!-- MINHA CONTA -->
@@ -703,6 +756,7 @@
 
       loadParticipantes();
       loadJogos();
+      loadPalpites();
     });
 
     // ---------- Meus dados (admin) ----------
@@ -835,6 +889,7 @@
         document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
         btn.classList.add("active");
         document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+        if (btn.dataset.tab === "palpites") loadPalpites();
       });
     });
 
@@ -1494,6 +1549,139 @@
         console.error(err);
         showGlobalMessage("Erro ao cadastrar jogo: " + err.message, "error");
       }
+    });
+
+    // ---------- Palpites ----------
+    const listaPalpites = document.getElementById("listaPalpites");
+    const palpitesEmptyMsg = document.getElementById("palpitesEmptyMsg");
+    const filtroPalpitesParticipante = document.getElementById("filtroPalpitesParticipante");
+    const filtroPalpitesJogo = document.getElementById("filtroPalpitesJogo");
+    const atualizarPalpitesBtn = document.getElementById("atualizarPalpitesBtn");
+
+    let palpitesCache = [];
+    let participantesMap = {};
+    let jogosMap = {};
+
+    async function loadPalpites() {
+      const [palpitesSnap, usersSnap, jogosSnap] = await Promise.all([
+        getDocs(collection(db, "palpites")),
+        getDocs(collection(db, "users")),
+        getDocs(collection(db, "jogos"))
+      ]);
+
+      participantesMap = {};
+      usersSnap.forEach((d) => {
+        participantesMap[d.id] = d.data().nome || d.data().email || d.id;
+      });
+
+      jogosMap = {};
+      jogosSnap.forEach((d) => {
+        jogosMap[d.id] = d.data();
+      });
+
+      palpitesCache = palpitesSnap.docs.map((d) => ({ id: d.id, data: d.data() }));
+
+      preencherFiltrosPalpites();
+      renderPalpites();
+    }
+
+    function preencherFiltrosPalpites() {
+      const participanteAtual = filtroPalpitesParticipante.value;
+      const jogoAtual = filtroPalpitesJogo.value;
+
+      const participantesOrdenados = Object.entries(participantesMap).sort(
+        (a, b) => a[1].localeCompare(b[1], "pt-BR")
+      );
+      filtroPalpitesParticipante.innerHTML =
+        '<option value="">Todos os participantes</option>' +
+        participantesOrdenados.map(([uid, nome]) => `<option value="${uid}">${escapeHtml(nome)}</option>`).join("");
+      filtroPalpitesParticipante.value = participanteAtual;
+
+      const jogosOrdenados = Object.entries(jogosMap).sort(
+        (a, b) => dataHoraMs(b[1].dataHora) - dataHoraMs(a[1].dataHora)
+      );
+      filtroPalpitesJogo.innerHTML =
+        '<option value="">Todos os jogos</option>' +
+        jogosOrdenados
+          .map(
+            ([id, jogo]) =>
+              `<option value="${id}">${escapeHtml(jogo.timeCasa)} x ${escapeHtml(jogo.timeFora)} — ${formatDataHora(jogo.dataHora)}</option>`
+          )
+          .join("");
+      filtroPalpitesJogo.value = jogoAtual;
+    }
+
+    function criarLinhaPalpite(palpiteId, data) {
+      const jogo = jogosMap[data.gameId];
+      const nomeParticipante = participantesMap[data.userId] || "(participante removido)";
+      const descJogo = jogo ? `${escapeHtml(jogo.timeCasa)} x ${escapeHtml(jogo.timeFora)}` : "(jogo removido)";
+      const dataJogo = jogo ? formatDataHora(jogo.dataHora) : "-";
+      const pontos = typeof data.pontos === "number" ? data.pontos : "-";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(nomeParticipante)}</td>
+        <td>${descJogo}</td>
+        <td>${dataJogo}</td>
+        <td>${data.placarCasa} x ${data.placarFora}</td>
+        <td>${pontos}</td>
+        <td><button type="button" class="delete-palpite-btn">Excluir</button></td>
+      `;
+
+      const deleteBtn = tr.querySelector(".delete-palpite-btn");
+      deleteBtn.addEventListener("click", async () => {
+        const confirmado = confirm(
+          `Excluir o palpite de ${nomeParticipante} para ${descJogo}? Essa ação não pode ser desfeita.`
+        );
+        if (!confirmado) return;
+
+        deleteBtn.disabled = true;
+        try {
+          await deleteDoc(doc(db, "palpites", palpiteId));
+          showGlobalMessage("Palpite excluído com sucesso.", "success");
+          palpitesCache = palpitesCache.filter((p) => p.id !== palpiteId);
+          renderPalpites();
+        } catch (err) {
+          console.error(err);
+          showGlobalMessage("Erro ao excluir palpite: " + err.message, "error");
+          deleteBtn.disabled = false;
+        }
+      });
+
+      return tr;
+    }
+
+    function renderPalpites() {
+      const participanteFiltro = filtroPalpitesParticipante.value;
+      const jogoFiltro = filtroPalpitesJogo.value;
+
+      const filtrados = palpitesCache.filter(({ data }) => {
+        if (participanteFiltro && data.userId !== participanteFiltro) return false;
+        if (jogoFiltro && data.gameId !== jogoFiltro) return false;
+        return true;
+      });
+
+      filtrados.sort((a, b) => {
+        const jogoA = jogosMap[a.data.gameId];
+        const jogoB = jogosMap[b.data.gameId];
+        return dataHoraMs(jogoB && jogoB.dataHora) - dataHoraMs(jogoA && jogoA.dataHora);
+      });
+
+      listaPalpites.innerHTML = "";
+      palpitesEmptyMsg.style.display = filtrados.length === 0 ? "block" : "none";
+
+      filtrados.forEach(({ id, data }) => {
+        listaPalpites.appendChild(criarLinhaPalpite(id, data));
+      });
+    }
+
+    filtroPalpitesParticipante.addEventListener("change", renderPalpites);
+    filtroPalpitesJogo.addEventListener("change", renderPalpites);
+    atualizarPalpitesBtn.addEventListener("click", () => {
+      atualizarPalpitesBtn.disabled = true;
+      loadPalpites().finally(() => {
+        atualizarPalpitesBtn.disabled = false;
+      });
     });
 
     // ---------- Expiração de sessão por inatividade ----------
