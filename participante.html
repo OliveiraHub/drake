@@ -615,7 +615,12 @@
     table { font-size: 13px; }
     table th, table td { padding: 8px; }
     .nome-participante { font-size: 16px; }
-    .pontos-col { min-width: 140px; }
+    table.ranking-table th:nth-child(4),
+    table.ranking-table td:nth-child(4),
+    table.ranking-table th:nth-child(5),
+    table.ranking-table td:nth-child(5) { display: none; }
+    .pontos-col { min-width: 0; width: 100%; }
+    .posicao-cel { width: 36px; }
 
     .modal-box { padding: 16px; max-height: 86vh; }
     .modal-header { gap: 10px; }
@@ -857,7 +862,7 @@
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           if (userData.nome) {
-            nomeExibido = `${userData.nome} (${user.email})`;
+            nomeExibido = userData.nome;
           }
           if (userData.role === "admin") {
             document.getElementById("mainNav").style.display = "flex";
