@@ -259,19 +259,7 @@
     font-size: 15px;
     font-family: inherit;
   }
-  .save-palpite-btn {
-    padding: 7px 16px;
-    border: none;
-    border-radius: 8px;
-    background: var(--cyan);
-    color: #08080f;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .save-palpite-btn:hover { background: #2adde6; }
-  .save-palpite-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .placar-input:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .empty-msg {
     color: var(--text-muted);
@@ -947,16 +935,15 @@
             <input type="number" min="0" class="placar-input" data-casa value="${meuPalpite ? meuPalpite.placarCasa : ""}">
             <span class="vs">x</span>
             <input type="number" min="0" class="placar-input" data-fora value="${meuPalpite ? meuPalpite.placarFora : ""}">
-            <button type="button" class="save-palpite-btn">Salvar palpite</button>
           </div>
         `;
 
-        const btn = card.querySelector(".save-palpite-btn");
         const inputCasa = card.querySelector("[data-casa]");
         const inputFora = card.querySelector("[data-fora]");
+        let salvando = false;
 
-        btn.addEventListener("click", async () => {
-          // Revalida o prazo no instante do clique. A garantia final, à prova de
+        async function salvarPalpiteAutomatico() {
+          // Revalida o prazo no instante da mudança. A garantia final, à prova de
           // DevTools, vem das Firestore Security Rules — isto é só feedback imediato.
           if (!jogoAindaAberto(data)) {
             showGlobalMessage("O prazo para esse palpite encerrou.", "error");
@@ -968,11 +955,14 @@
           const placarFora = parseInt(inputFora.value, 10);
 
           if (isNaN(placarCasa) || isNaN(placarFora)) {
-            showGlobalMessage("Preencha os dois campos de placar.", "error");
+            // Só salva quando os dois campos estiverem preenchidos com números válidos.
             return;
           }
 
-          btn.disabled = true;
+          if (salvando) return;
+          salvando = true;
+          inputCasa.disabled = true;
+          inputFora.disabled = true;
           try {
             const palpiteId = `${currentUser.uid}_${gameId}`;
             await setDoc(doc(db, "palpites", palpiteId), {
@@ -991,9 +981,14 @@
               showGlobalMessage("Erro ao salvar palpite: " + err.message, "error");
             }
           } finally {
-            btn.disabled = false;
+            salvando = false;
+            inputCasa.disabled = false;
+            inputFora.disabled = false;
           }
-        });
+        }
+
+        inputCasa.addEventListener("change", salvarPalpiteAutomatico);
+        inputFora.addEventListener("change", salvarPalpiteAutomatico);
       } else {
         const resultadoTexto = data.finalizado ? `${data.placarCasa} - ${data.placarFora}` : "Aguardando";
 

@@ -221,6 +221,7 @@
   }
   .badge.ok { background: rgba(52,211,153,0.15); color: #34d399; }
   .badge.pending { background: rgba(255,215,0,0.15); color: var(--gold); }
+  .badge.admin { background: rgba(0,200,212,0.15); color: var(--cyan); }
 
   .edit-input {
     width: 100%;
@@ -747,16 +748,34 @@
 
     async function loadParticipantes() {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("role", "==", "participante"));
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(usersRef);
 
       listaParticipantes.innerHTML = "";
       participantesEmptyMsg.style.display = snapshot.empty ? "block" : "none";
 
       snapshot.forEach((docSnap) => {
-        const tr = criarLinhaParticipante(docSnap.id, docSnap.data(), false);
+        const data = docSnap.data();
+        const tr = data.role === "admin"
+          ? criarLinhaParticipanteAdmin(docSnap.id, data)
+          : criarLinhaParticipante(docSnap.id, data, false);
         listaParticipantes.appendChild(tr);
       });
+    }
+
+    function criarLinhaParticipanteAdmin(docId, data) {
+      const tr = document.createElement("tr");
+      const statusBadge = data.uid
+        ? '<span class="badge ok">Já logou</span>'
+        : '<span class="badge pending">Aguardando 1º login</span>';
+
+      tr.innerHTML = `
+        <td>${escapeHtml(data.nome)}</td>
+        <td>${escapeHtml(data.email)}</td>
+        <td>${statusBadge}</td>
+        <td><span class="badge admin">Administrador</span></td>
+      `;
+
+      return tr;
     }
 
     function criarLinhaParticipante(docId, data, editing) {
